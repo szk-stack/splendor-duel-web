@@ -169,11 +169,13 @@ a { color: var(--accent-2); cursor: pointer; }
 .card-top { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; }
 .card-points { font-size: 17px; font-weight: 800; }
 .card-crowns { display: flex; gap: 1px; margin-left: auto; }
-/* 宝石固定中上位置，能力标签紧贴其下，价格贴底——下方留两个词条的空间 */
+/* 宝石容器：固定高度 + 顶部对齐，所有卡片的宝石图案顶部在同一条线上 */
 .card-gem {
-  position: absolute; top: 30%; left: 50%;
-  transform: translate(-50%, -50%);
+  position: absolute; top: 22%; left: 50%;
+  transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-start;
+  height: 44px; /* 容纳 宝石(24) / 空轮廓+无(40) / 宝石+百搭标签(42) */
 }
 .card-gems { display: flex; gap: 2px; align-items: center; }
 .card-gem-empty {
@@ -182,17 +184,17 @@ a { color: var(--accent-2); cursor: pointer; }
 }
 .card-joker-tag { font-size: 11px; background: #f5d97c; color: #4a3a08; border-radius: 6px; padding: 0 5px; font-weight: 700; margin-top: 2px; }
 .card-capacity {
-  position: absolute; top: calc(30% + 20px); left: 50%; transform: translateX(-50%);
+  position: absolute; top: calc(22% + 46px); left: 50%; transform: translateX(-50%);
   font-size: 10px; background: #00000055; border-radius: 6px; padding: 1px 6px;
   white-space: nowrap;
 }
 .card-cost { margin-top: auto; }
-.card-cost { display: flex; gap: 3px; width: 100%; justify-content: center; flex-wrap: wrap; }
+.card-cost { display: flex; gap: 2px; width: 100%; justify-content: center; flex-wrap: wrap; }
 .cost-dot {
-  width: 17px; height: 17px; border-radius: 50%;
+  width: 13px; height: 13px; border-radius: 50%;
   border: 1px solid #ffffff66;
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; text-shadow: none;
+  font-size: 9px; font-weight: 700; text-shadow: none;
 }
 .cost-white { background: #e8edf2; color: #333; }
 .cost-blue { background: #4b8ae8; color: #fff; }
@@ -240,6 +242,9 @@ a { color: var(--accent-2); cursor: pointer; }
 .reserved-label { font-size: 12px; color: var(--text-dim); }
 .reserved-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .reserved-row .card { width: 62px; height: 86px; }
+/* 迷你保留牌卡面精简：隐藏能力标签（悬停有提示），费用点更小 */
+.reserved-row .card .card-capacity { display: none; }
+.reserved-row .card .cost-dot { width: 11px; height: 11px; font-size: 8px; }
 
 /* ============ 行动栏 ============ */
 .action-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }

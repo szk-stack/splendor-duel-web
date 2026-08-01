@@ -45,7 +45,7 @@ export function CardView({ card, selected, highlight, dimmed, onClick, showCost 
         {card.bonus === null ? (
           // 无奖励（灰）卡：虚线空宝石轮廓，表达"不产宝石"
           <span className="card-gem-empty">
-            <svg width={26} height={26} viewBox="0 0 20 20" aria-hidden>
+            <svg width={24} height={24} viewBox="0 0 20 20" aria-hidden>
               <polygon
                 points="10,1 18,6 15,18 5,18 2,6"
                 fill="none"
