@@ -6,10 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="2883346a-6e8f-4268-b2fc-8964632491dc" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/engine/actions.py" beforeDir="false" afterPath="$PROJECT_DIR$/server/engine/actions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/server/tests/test_take.py" beforeDir="false" afterPath="$PROJECT_DIR$/server/tests/test_take.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/gameLogic.test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/gameLogic.test.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/src/gameLogic.ts" beforeDir="false" afterPath="$PROJECT_DIR$/web/src/gameLogic.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -58,7 +54,7 @@
       <option name="presentableId" value="Default" />
       <updated>1785585216385</updated>
       <workItem from="1785585217428" duration="1186000" />
-      <workItem from="1785586428224" duration="14446000" />
+      <workItem from="1785586428224" duration="15307000" />
     </task>
     <servers />
   </component>

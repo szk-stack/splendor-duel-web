@@ -1,8 +1,18 @@
 /** 玩家面板：得分/皇冠/特权/手牌/已购卡/保留牌。 */
-import type { CardData, PlayerView, TokenColor } from '../types'
-import { CAPACITY_LABEL } from '../api'
+import type { BoughtEntry, CardData, PlayerView, TokenColor } from '../types'
+import { TOKEN_LABEL } from '../api'
 import { chipClass, CrownIcon } from './gem'
 import { CardView } from './Card'
+
+/** 已购卡按奖励色分组计数（灰卡归入 gray；百搭卡已按复制色入账） */
+function groupedBought(bought: BoughtEntry[]): { bonus: string; count: number }[] {
+  const m = new Map<string, number>()
+  for (const e of bought) {
+    const key = e.bonus ?? 'gray'
+    m.set(key, (m.get(key) ?? 0) + 1)
+  }
+  return [...m.entries()].map(([bonus, count]) => ({ bonus, count }))
+}
 
 interface Props {
   player: PlayerView
@@ -38,26 +48,15 @@ export function PlayerPanel({ player, isMe, isCurrent, reservedClickable, onRese
         )}
       </div>
       <div className="player-cards">
-        {player.bought.map((e) => (
+        {/* 已购卡按奖励色汇总：数字 = 该色卡牌张数 */}
+        {groupedBought(player.bought).map(({ bonus, count }) => (
           <span
-            key={e.id}
+            key={bonus}
             className="bought-mini"
-            title={`${e.id} · 奖励 ${e.bonus ?? '无'} · ${e.points} 分 · ${e.crowns ?? 0} 皇冠` +
-              `${e.capacity ? ` · ${CAPACITY_LABEL[e.capacity] ?? e.capacity}` : ''}` +
-              `${e.stacked_on ? ` · 叠放在 ${e.stacked_on} 上` : ''}`}
+            title={`${bonus === 'gray' ? '灰色卡' : `${TOKEN_LABEL[bonus as TokenColor]}奖励卡`} ×${count}`}
           >
-            <div className={`bought-mini-gem card-theme-${e.bonus ?? 'gray'}`} />
-            <b>{e.points}</b>
-            {(e.crowns ?? 0) > 0 && (
-              <span className="bought-crowns">
-                {Array.from({ length: e.crowns! }).map((_, i) => (
-                  <CrownIcon key={i} size={9} />
-                ))}
-              </span>
-            )}
-            {e.capacity && <i className="bought-cap">{CAPACITY_LABEL[e.capacity] ?? e.capacity}</i>}
-            {e.bonus_number > 1 && <i className="stacked-mark">×{e.bonus_number}</i>}
-            {e.stacked_on && <i className="stacked-mark stacked-on">叠</i>}
+            <div className={`bought-mini-gem card-theme-${bonus}`} />
+            <b>{count}</b>
           </span>
         ))}
         {player.royal_cards.map((r) => (
