@@ -1,0 +1,223 @@
+[
+  {
+    "id": "carte_59",
+    "level": 3,
+    "points": 6,
+    "bonus": null,
+    "bonus_number": 0,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 8,
+      "blue": 0,
+      "green": 0,
+      "red": 0,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_60",
+    "level": 3,
+    "points": 3,
+    "bonus": "blue",
+    "bonus_number": 1,
+    "crowns": 2,
+    "capacity": null,
+    "cost": {
+      "white": 3,
+      "blue": 0,
+      "green": 3,
+      "red": 0,
+      "black": 5,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_61",
+    "level": 3,
+    "points": 4,
+    "bonus": "blue",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 2,
+      "blue": 6,
+      "green": 2,
+      "red": 0,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_62",
+    "level": 3,
+    "points": 4,
+    "bonus": "red",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 2,
+      "red": 6,
+      "black": 2,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_63",
+    "level": 3,
+    "points": 3,
+    "bonus": "red",
+    "bonus_number": 1,
+    "crowns": 2,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 5,
+      "green": 3,
+      "red": 0,
+      "black": 3,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_64",
+    "level": 3,
+    "points": 4,
+    "bonus": "white",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 6,
+      "blue": 2,
+      "green": 0,
+      "red": 0,
+      "black": 2,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_65",
+    "level": 3,
+    "points": 3,
+    "bonus": "white",
+    "bonus_number": 1,
+    "crowns": 2,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 3,
+      "green": 0,
+      "red": 5,
+      "black": 3,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_66",
+    "level": 3,
+    "points": 3,
+    "bonus": "green",
+    "bonus_number": 1,
+    "crowns": 2,
+    "capacity": null,
+    "cost": {
+      "white": 5,
+      "blue": 3,
+      "green": 0,
+      "red": 3,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_67",
+    "level": 3,
+    "points": 4,
+    "bonus": "green",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 2,
+      "green": 6,
+      "red": 2,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_68",
+    "level": 3,
+    "points": 3,
+    "bonus": "black",
+    "bonus_number": 1,
+    "crowns": 2,
+    "capacity": null,
+    "cost": {
+      "white": 3,
+      "blue": 0,
+      "green": 5,
+      "red": 3,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_69",
+    "level": 3,
+    "points": 4,
+    "bonus": "black",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 2,
+      "blue": 0,
+      "green": 0,
+      "red": 2,
+      "black": 6,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_70",
+    "level": 3,
+    "points": 0,
+    "bonus": "joker",
+    "bonus_number": 1,
+    "crowns": 3,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 0,
+      "red": 0,
+      "black": 8,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_71",
+    "level": 3,
+    "points": 3,
+    "bonus": "joker",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "replay",
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 0,
+      "red": 8,
+      "black": 0,
+      "pearl": 0
+    }
+  }
+]

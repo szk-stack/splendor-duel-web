@@ -1,0 +1,410 @@
+[
+  {
+    "id": "carte_58",
+    "level": 2,
+    "points": 5,
+    "bonus": null,
+    "bonus_number": 0,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 6,
+      "green": 0,
+      "red": 0,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_35",
+    "level": 2,
+    "points": 1,
+    "bonus": "blue",
+    "bonus_number": 2,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 5,
+      "red": 2,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_36",
+    "level": 2,
+    "points": 2,
+    "bonus": "blue",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "take_priviledge",
+    "cost": {
+      "white": 2,
+      "blue": 4,
+      "green": 0,
+      "red": 0,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_37",
+    "level": 2,
+    "points": 1,
+    "bonus": "blue",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "steal_opponent_pawn",
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 4,
+      "red": 0,
+      "black": 3,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_38",
+    "level": 2,
+    "points": 2,
+    "bonus": "blue",
+    "bonus_number": 1,
+    "crowns": 1,
+    "capacity": null,
+    "cost": {
+      "white": 2,
+      "blue": 0,
+      "green": 0,
+      "red": 2,
+      "black": 2,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_39",
+    "level": 2,
+    "points": 2,
+    "bonus": "black",
+    "bonus_number": 1,
+    "crowns": 1,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 2,
+      "green": 2,
+      "red": 2,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_40",
+    "level": 2,
+    "points": 2,
+    "bonus": "black",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "take_priviledge",
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 0,
+      "red": 2,
+      "black": 4,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_41",
+    "level": 2,
+    "points": 1,
+    "bonus": "black",
+    "bonus_number": 2,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 5,
+      "blue": 2,
+      "green": 0,
+      "red": 0,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_42",
+    "level": 2,
+    "points": 1,
+    "bonus": "black",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "steal_opponent_pawn",
+    "cost": {
+      "white": 4,
+      "blue": 0,
+      "green": 3,
+      "red": 0,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_43",
+    "level": 2,
+    "points": 1,
+    "bonus": "green",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "steal_opponent_pawn",
+    "cost": {
+      "white": 3,
+      "blue": 0,
+      "green": 0,
+      "red": 4,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_46",
+    "level": 2,
+    "points": 1,
+    "bonus": "green",
+    "bonus_number": 2,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 0,
+      "red": 5,
+      "black": 2,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_44",
+    "level": 2,
+    "points": 2,
+    "bonus": "green",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "take_priviledge",
+    "cost": {
+      "white": 0,
+      "blue": 2,
+      "green": 4,
+      "red": 0,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_45",
+    "level": 2,
+    "points": 2,
+    "bonus": "green",
+    "bonus_number": 1,
+    "crowns": 1,
+    "capacity": null,
+    "cost": {
+      "white": 2,
+      "blue": 2,
+      "green": 0,
+      "red": 0,
+      "black": 2,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_47",
+    "level": 2,
+    "points": 1,
+    "bonus": "red",
+    "bonus_number": 2,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 2,
+      "blue": 0,
+      "green": 0,
+      "red": 0,
+      "black": 5,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_48",
+    "level": 2,
+    "points": 2,
+    "bonus": "red",
+    "bonus_number": 1,
+    "crowns": 1,
+    "capacity": null,
+    "cost": {
+      "white": 2,
+      "blue": 2,
+      "green": 2,
+      "red": 0,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_50",
+    "level": 2,
+    "points": 2,
+    "bonus": "red",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "take_priviledge",
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 2,
+      "red": 4,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_49",
+    "level": 2,
+    "points": 1,
+    "bonus": "red",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "steal_opponent_pawn",
+    "cost": {
+      "white": 0,
+      "blue": 3,
+      "green": 0,
+      "red": 0,
+      "black": 4,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_51",
+    "level": 2,
+    "points": 1,
+    "bonus": "white",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "steal_opponent_pawn",
+    "cost": {
+      "white": 0,
+      "blue": 4,
+      "green": 0,
+      "red": 3,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_52",
+    "level": 2,
+    "points": 2,
+    "bonus": "white",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": "take_priviledge",
+    "cost": {
+      "white": 4,
+      "blue": 0,
+      "green": 0,
+      "red": 0,
+      "black": 2,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_53",
+    "level": 2,
+    "points": 2,
+    "bonus": "white",
+    "bonus_number": 1,
+    "crowns": 1,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 2,
+      "red": 2,
+      "black": 2,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_54",
+    "level": 2,
+    "points": 1,
+    "bonus": "white",
+    "bonus_number": 2,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 5,
+      "green": 2,
+      "red": 0,
+      "black": 0,
+      "pearl": 0
+    }
+  },
+  {
+    "id": "carte_55",
+    "level": 2,
+    "points": 0,
+    "bonus": "joker",
+    "bonus_number": 1,
+    "crowns": 2,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 6,
+      "red": 0,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_56",
+    "level": 2,
+    "points": 2,
+    "bonus": "joker",
+    "bonus_number": 1,
+    "crowns": 0,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 0,
+      "green": 6,
+      "red": 0,
+      "black": 0,
+      "pearl": 1
+    }
+  },
+  {
+    "id": "carte_57",
+    "level": 2,
+    "points": 0,
+    "bonus": "joker",
+    "bonus_number": 1,
+    "crowns": 2,
+    "capacity": null,
+    "cost": {
+      "white": 0,
+      "blue": 6,
+      "green": 0,
+      "red": 0,
+      "black": 0,
+      "pearl": 1
+    }
+  }
+]

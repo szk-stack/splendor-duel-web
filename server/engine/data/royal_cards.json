@@ -1,0 +1,22 @@
+[
+  {
+    "id": "carte_1",
+    "points": 2,
+    "capacity": "replay"
+  },
+  {
+    "id": "carte_2",
+    "points": 3,
+    "capacity": null
+  },
+  {
+    "id": "carte_3",
+    "points": 2,
+    "capacity": "take_priviledge"
+  },
+  {
+    "id": "carte_4",
+    "points": 2,
+    "capacity": "steal_opponent_pawn"
+  }
+]
