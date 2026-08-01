@@ -7,6 +7,7 @@
 C_HELLO = "hello"            # {nickname}（连接后首帧）
 C_ACTION = "action"          # {action: {...}}
 C_REMATCH = "rematch"        # 对局结束后请求再来一局（同房间重开）
+C_LEAVE = "leave"            # 退出房间（释放席位；对局中则对手获胜）
 C_PING = "ping"              # 心跳
 
 # 服务端 -> 客户端

@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from engine.data import get_library
 from engine.game import Game
-from engine.types import InvalidAction
+from engine.types import InvalidAction, Phase
 from . import config, protocol
 from .api import router as api_router
 from .rooms import Room, RoomError, RoomManager
@@ -139,6 +139,9 @@ async def ws_endpoint(websocket: WebSocket,
                 await _handle_action(r, session, data.get("action") or {})
             elif mtype == protocol.C_REMATCH:
                 await _handle_rematch(r)
+            elif mtype == protocol.C_LEAVE:
+                await _handle_leave(r, session)
+                break  # 退出后断开本连接
             # hello 首帧仅作兼容，忽略
     except asyncio.TimeoutError:
         await websocket.close(code=1000, reason="心跳超时")
@@ -172,6 +175,33 @@ async def _handle_action(room: Room, session, action: dict):
                                  "message": e.message, "ref_action": action})
         return
     await _broadcast_state(room, events)
+
+
+async def _handle_leave(room: Room, session):
+    """退出房间：释放席位。对局进行中则对手获胜（forfeit），房间回到等待状态。"""
+    manager = app.state.manager
+    # 对局进行中 -> 对手获胜
+    if room.game is not None and room.game.state.phase != Phase.GAME_OVER:
+        game = room.game
+        game.state.winner = 1 - session.slot
+        game.state.win_reason = "forfeit"
+        game.state.phase = Phase.GAME_OVER
+        await _broadcast_state(room, [{"type": "game_over", "winner": 1 - session.slot,
+                                       "reason": "forfeit"}])
+    # 移除会话，释放席位（房间作为"桌子"保留，可用房间码重新加入）
+    room.players.pop(session.slot, None)
+    room.game = None
+    room.status = "waiting"
+    room.touch()
+    if not room.players:
+        await manager.close_room(room.code, "房间已关闭")
+        return
+    opp = next(iter(room.players.values()))
+    if opp.ws is not None:
+        try:
+            await _send(opp.ws, {"type": protocol.S_PLAYER_LEFT, "slot": session.slot})
+        except Exception:
+            pass
 
 
 async def _handle_rematch(room: Room):

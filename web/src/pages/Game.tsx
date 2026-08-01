@@ -15,7 +15,7 @@ import { Banner } from '../components/Banner'
 
 export function GamePage() {
   const nav = useNavigate()
-  const { room, gameState, legalActions, error, banner, sendAction, rematch, reset, connStatus } = useGameStore()
+  const { room, gameState, legalActions, error, banner, sendAction, rematch, leave, reset, connStatus } = useGameStore()
   const [confirmExit, setConfirmExit] = useState(false)
   const [confirmConcede, setConfirmConcede] = useState(false)
   const [mode, setMode] = useState<Mode>('none')
@@ -183,7 +183,7 @@ export function GamePage() {
   }
 
   const exitRoom = () => {
-    reset()
+    leave()  // 通知服务端释放席位（对局中对手获胜），稍后自动清理本地会话
     nav('/')
   }
 
@@ -349,6 +349,7 @@ export function GamePage() {
               {gameState.win_reason?.startsWith('same_color') && '同色卡牌声望分达到 10 分'}
               {gameState.win_reason === 'concede' &&
                 (gameState.winner === me.slot ? '对手认输' : '你认输了')}
+              {gameState.win_reason === 'forfeit' && '对手离开了，你获胜'}
             </p>
             <div className="victory-actions">
               <button className="action-btn action-btn-confirm" onClick={rematch}>

@@ -106,7 +106,7 @@ class RoomManager:
         return code, token, 0
 
     def join(self, code: str, nickname: str) -> tuple:
-        """加入房间，返回 (code, token, slot=1)。"""
+        """加入房间，返回 (code, token, slot)。优先分配空闲席位（退出后 slot 0 可能空闲）。"""
         code = code.strip().upper()
         room = self.rooms.get(code)
         if room is None:
@@ -115,9 +115,11 @@ class RoomManager:
             raise RoomError("ROOM_FULL", "房间已满或对局已开始", 409)
         nickname = sanitize_nickname(nickname)
         token = secrets.token_urlsafe(24)
-        room.players[1] = PlayerSession(slot=1, token=token, nickname=nickname)
+        slot = 0 if 0 not in room.players else 1
+        room.players[slot] = PlayerSession(slot=slot, token=token, nickname=nickname)
+        room.game = None  # 新玩家入座后重开新局
         room.touch()
-        return code, token, 1
+        return code, token, slot
 
     def get(self, code: str) -> Room:
         return self.rooms.get(code.strip().upper())

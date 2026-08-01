@@ -25,6 +25,8 @@ interface GameStore {
   join: (code: string, nickname: string) => Promise<void>
   sendAction: (action: Action) => void
   rematch: () => void
+  /** 退出房间：通知服务端释放席位后清理本地会话 */
+  leave: () => void
   clearError: () => void
   reset: () => void
 }
@@ -77,6 +79,16 @@ export const useGameStore = create<GameStore>((set) => ({
 
   rematch: () => {
     wsClient.send({ type: 'rematch' })
+  },
+
+  leave: () => {
+    wsClient.send({ type: 'leave' })
+    // 等服务端处理完再断开（消息是异步发送的）
+    setTimeout(() => {
+      wsClient.close()
+      sessionStorage.removeItem('splendor_room')
+      sessionStorage.removeItem('splendor_nickname')
+    }, 300)
   },
 
   clearError: () => set({ error: null }),

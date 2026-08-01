@@ -5,7 +5,7 @@ import { useGameStore } from '../store'
 
 export function LobbyPage() {
   const nav = useNavigate()
-  const { room, nickname, gameState, connStatus, reset } = useGameStore()
+  const { room, nickname, gameState, connStatus, leave } = useGameStore()
   const [copied, setCopied] = useState(false)
 
   // 开局后自动进入棋盘
@@ -53,7 +53,7 @@ export function LobbyPage() {
         )}
       </div>
 
-      <button className="action-btn lobby-leave" onClick={() => { reset(); nav('/') }}>
+      <button className="action-btn lobby-leave" onClick={() => { leave(); nav('/') }}>
         离开房间
       </button>
     </div>

@@ -147,6 +147,41 @@ def test_concede_and_rematch(client):
     ctx1.__exit__(None, None, None)
 
 
+def test_leave_midgame_rejoin(client):
+    """对局中退出：对手获胜(forfeit)；席位释放后可重新加入并开新局。"""
+    r0 = create_room(client, "A")
+    r1 = join_room(client, r0["room_code"], "B")
+    ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])
+    recv_until(ws0, "hello")
+    ctx1, ws1 = _open_ws(client, r0["room_code"], r1["token"])
+    recv_until(ws1, "hello")
+    recv_until(ws0, "state")
+    recv_until(ws1, "state")
+
+    # 0 号退出 -> 1 号获胜（forfeit）
+    ws0.send_json({"type": "leave"})
+    st = recv_until(ws1, "state")
+    assert st["state"]["winner"] == 1
+    assert st["state"]["win_reason"] == "forfeit"
+    # 0 号连接被服务端断开
+    ctx0.__exit__(None, None, None)
+
+    # 新玩家（或原玩家）可用房间码重新加入
+    r2 = client.post(f"/api/rooms/{r0['room_code']}/join", json={"nickname": "C"})
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["slot"] == 0  # 空闲席位
+    ctx2, ws2 = _open_ws(client, r0["room_code"], r2.json()["token"])
+    recv_until(ws2, "hello")
+    # 双方连接后开新局
+    st1 = recv_until(ws1, "state")
+    st2 = recv_until(ws2, "state")
+    assert st1["started"] and st2["started"]
+    assert st1["state"]["winner"] is None
+
+    ctx2.__exit__(None, None, None)
+    ctx1.__exit__(None, None, None)
+
+
 def test_ping_pong(client):
     r0 = create_room(client)
     ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])

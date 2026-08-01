@@ -133,4 +133,5 @@ export type ClientMessage =
   | { type: 'hello'; nickname: string }
   | { type: 'action'; action: Action }
   | { type: 'rematch' }
+  | { type: 'leave' }
   | { type: 'ping' }
