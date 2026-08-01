@@ -1,0 +1,15 @@
+{
+  "win_points": 20,
+  "win_crowns": 10,
+  "win_same_color_points": 10,
+  "hand_limit": 10,
+  "reserve_limit": 3,
+  "max_privileges": 3,
+  "second_player_start_privileges": 1,
+  "max_take_tokens": 3,
+  "pyramid_visible": { "1": 5, "2": 4, "3": 3 },
+  "royal_crown_thresholds": [3, 6],
+  "max_royal_cards": 2,
+  "privilege_uses_per_turn": 1,
+  "fill_uses_per_turn": 1
+}
