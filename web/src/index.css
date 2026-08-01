@@ -239,15 +239,17 @@ a { color: var(--accent-2); cursor: pointer; }
   border-radius: 14px; padding: 10px 14px; margin: 10px 0;
 }
 .player-current { border-color: var(--accent); }
-.player-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+/* 面板主体：左（名字/手牌/已购卡）右（统计）两列，左侧无空行 */
+.player-body { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.player-left { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .player-name { font-weight: 700; font-size: 16px; }
 .player-me-tag { color: var(--accent); font-size: 12px; margin-left: 4px; }
 .player-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .player-stats { display: flex; gap: 14px; color: var(--text-dim); font-size: 13px; }
 .player-stats b { color: var(--text); }
 .stat { display: inline-flex; align-items: center; gap: 3px; }
-.player-tokens { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.player-cards { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.player-tokens { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.player-cards { display: flex; flex-wrap: wrap; gap: 6px; }
 .bought-mini {
   width: 34px; height: 44px; border-radius: 6px;
   border: 1px solid #ffffff33; position: relative;

@@ -39,11 +39,37 @@ export function PlayerPanel({ player, isMe, isCurrent, reservedClickable, onRese
   const colorPoints = colorPointsOf(player.bought)
   return (
     <div className={['player-panel', isCurrent ? 'player-current' : '', isMe ? 'me' : 'opp'].join(' ')}>
-      <div className="player-head">
-        <span className="player-name">
-          {player.nickname || `玩家${player.slot + 1}`}
-          {isMe && <span className="player-me-tag">（我）</span>}
-        </span>
+      <div className="player-body">
+        {/* 左侧：名字/手牌/已购卡连续排列 */}
+        <div className="player-left">
+          <span className="player-name">
+            {player.nickname || `玩家${player.slot + 1}`}
+            {isMe && <span className="player-me-tag">（我）</span>}
+          </span>
+          <div className="player-tokens">
+            {colors.map((c) =>
+              player.tokens[c] > 0 ? (
+                <span key={c} className={`hand-chip ${chipClass(c)}`}>
+                  <b>{player.tokens[c]}</b>
+                </span>
+              ) : null,
+            )}
+          </div>
+          <div className="player-cards">
+            {/* 已购卡按奖励色汇总：数字 = 该色卡牌张数（无色卡不显示只计分） */}
+            {groupedBought(player.bought).map(({ bonus, count }) => (
+              <span
+                key={bonus}
+                className={`bought-mini ${bonus === 'white' ? 'bought-mini-light' : ''}`}
+                title={`${bonus === 'gray' ? '灰色卡' : `${TOKEN_LABEL[bonus as TokenColor]}奖励卡`} ×${count}`}
+              >
+                <div className={`bought-mini-gem card-theme-${bonus}`} />
+                <b>{count}</b>
+              </span>
+            ))}
+          </div>
+        </div>
+        {/* 右侧：统计区（得分/颜色得分/皇家牌） */}
         <div className="player-right">
           <span className="player-stats">
             <span className="stat">得分 <b>{player.points}</b></span>
@@ -73,28 +99,6 @@ export function PlayerPanel({ player, isMe, isCurrent, reservedClickable, onRese
             </span>
           )}
         </div>
-      </div>
-      <div className="player-tokens">
-        {colors.map((c) =>
-          player.tokens[c] > 0 ? (
-            <span key={c} className={`hand-chip ${chipClass(c)}`}>
-              <b>{player.tokens[c]}</b>
-            </span>
-          ) : null,
-        )}
-      </div>
-      <div className="player-cards">
-        {/* 已购卡按奖励色汇总：数字 = 该色卡牌张数 */}
-        {groupedBought(player.bought).map(({ bonus, count }) => (
-          <span
-            key={bonus}
-            className={`bought-mini ${bonus === 'white' ? 'bought-mini-light' : ''}`}
-            title={`${bonus === 'gray' ? '灰色卡' : `${TOKEN_LABEL[bonus as TokenColor]}奖励卡`} ×${count}`}
-          >
-            <div className={`bought-mini-gem card-theme-${bonus}`} />
-            <b>{count}</b>
-          </span>
-        ))}
       </div>
       {player.reserved.length > 0 && (
         <div className="player-reserved">
