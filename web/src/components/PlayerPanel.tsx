@@ -44,34 +44,36 @@ export function PlayerPanel({ player, isMe, isCurrent, reservedClickable, onRese
           {player.nickname || `玩家${player.slot + 1}`}
           {isMe && <span className="player-me-tag">（我）</span>}
         </span>
-        <span className="player-stats">
-          <span className="stat">得分 <b>{player.points}</b></span>
-          <span className="stat">皇冠 <b>{player.crowns}</b> <CrownIcon size={11} /></span>
-          <span className="stat">特权 <b>{player.privileges}</b></span>
-          <span className="stat">卡牌 <b>{player.bought.length}</b></span>
-        </span>
-        {/* 皇家牌：右侧显示分数+能力 */}
-        {player.royal_cards.length > 0 && (
-          <span className="player-royals" title="皇家牌（3/6 皇冠时获得）">
-            {player.royal_cards.map((r) => (
-              <span key={r.id} className="royal-chip">
-                <b>{r.points}分</b>
-                {r.capacity && <i>{CAPACITY_LABEL[r.capacity] ?? r.capacity}</i>}
-              </span>
-            ))}
+        <div className="player-right">
+          <span className="player-stats">
+            <span className="stat">得分 <b>{player.points}</b></span>
+            <span className="stat">皇冠 <b>{player.crowns}</b> <CrownIcon size={11} /></span>
+            <span className="stat">特权 <b>{player.privileges}</b></span>
+            <span className="stat">卡牌 <b>{player.bought.length}</b></span>
           </span>
-        )}
-      </div>
-      {/* 各颜色得分（同色 10 分获胜参考） */}
-      {colorPoints.length > 0 && (
-        <div className="player-color-points">
-          {colorPoints.map(({ bonus, points }) => (
-            <span key={bonus} className={`color-point chip-${bonus}`} title={`${TOKEN_LABEL[bonus as TokenColor]}卡得分`}>
-              {points}
+          {/* 各颜色得分（同色 10 分获胜参考）——统计区第二行 */}
+          {colorPoints.length > 0 && (
+            <div className="player-color-points">
+              {colorPoints.map(({ bonus, points }) => (
+                <span key={bonus} className={`color-point chip-${bonus}`} title={`${TOKEN_LABEL[bonus as TokenColor]}卡得分`}>
+                  {points}
+                </span>
+              ))}
+            </div>
+          )}
+          {/* 皇家牌：右侧显示分数+能力 */}
+          {player.royal_cards.length > 0 && (
+            <span className="player-royals" title="皇家牌（3/6 皇冠时获得）">
+              {player.royal_cards.map((r) => (
+                <span key={r.id} className="royal-chip">
+                  <b>{r.points}分</b>
+                  {r.capacity && <i>{CAPACITY_LABEL[r.capacity] ?? r.capacity}</i>}
+                </span>
+              ))}
             </span>
-          ))}
+          )}
         </div>
-      )}
+      </div>
       <div className="player-tokens">
         {colors.map((c) =>
           player.tokens[c] > 0 ? (
