@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import type { BoughtEntry, CardData, GameState, PlayerView, TokenColor } from '../types'
 import { GEM_COLORS } from '../types'
+import { defaultPayment, effectiveCost } from '../gameLogic'
 import { chipClass } from './gem'
 
 interface Props {
@@ -21,33 +22,10 @@ interface ColorPay {
 
 export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired, onConfirm, onCancel }: Props) {
   // 有效费用 = 卡费 - 奖励（同色）
-  const bonus = useMemo(() => {
-    const b: Record<string, number> = {}
-    for (const e of me.bought) if (e.bonus) b[e.bonus] = (b[e.bonus] ?? 0) + e.bonus_number
-    return b
-  }, [me.bought])
-
-  const effCost = useMemo(() => {
-    const c: Record<string, number> = {}
-    for (const color of [...GEM_COLORS, 'pearl']) {
-      c[color] = Math.max(0, card.cost[color] - (bonus[color] ?? 0))
-    }
-    return c
-  }, [card, bonus])
+  const effCost = useMemo(() => effectiveCost(card, me.bought), [card, me.bought])
 
   // 默认支付：先筹码后金币
-  const [pay, setPay] = useState<Record<string, ColorPay>>(() => {
-    const p: Record<string, ColorPay> = {}
-    let goldLeft = me.tokens.gold
-    for (const color of [...GEM_COLORS, 'pearl']) {
-      const need = effCost[color]
-      const tokens = Math.min(need, me.tokens[color as TokenColor] ?? 0)
-      const gold = Math.min(need - tokens, goldLeft)
-      goldLeft -= gold
-      p[color] = { tokens, gold }
-    }
-    return p
-  })
+  const [pay, setPay] = useState<Record<string, ColorPay>>(() => defaultPayment(effCost, me.tokens))
 
   const [jokerTarget, setJokerTarget] = useState<string>(stackTargets?.[0] ?? '')
   const [stealColor, setStealColor] = useState<string>('')

@@ -25,6 +25,16 @@ npm run dev                     # http://localhost:5173
 
 浏览器打开两个窗口（普通 + 隐身）→ 一个创建房间，另一个输入房间码加入，即可联机对战。
 
+## 测试
+
+```bash
+# 后端（引擎 + 服务层集成，40 项）
+cd server && ../.venv/Scripts/python -m pytest tests/
+
+# 前端（交互逻辑 + 组件，24 项）
+cd web && npm test          # 或 npm run test:watch 边改边跑
+```
+
 ## 目录结构
 
 ```

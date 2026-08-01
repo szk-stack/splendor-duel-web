@@ -259,8 +259,17 @@ a { color: var(--accent-2); cursor: pointer; }
 }
 .discard-panel h4 { margin: 0 0 10px; }
 .discard-chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.discard-chip { width: auto; min-width: 52px; height: 40px; border-radius: 20px; padding: 0 10px; border: 2px solid #ffffff55; }
-.discard-chip i { font-style: normal; color: var(--danger); font-weight: 800; margin-left: 4px; }
+.discard-chip {
+  width: auto; min-width: 120px; height: 40px; border-radius: 20px;
+  padding: 0 8px; border: 2px solid #ffffff55;
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.discard-chip i { font-style: normal; color: var(--danger); font-weight: 800; }
+.discard-step {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid #ffffff88; background: rgba(0,0,0,0.25); color: #fff;
+  font-size: 14px; line-height: 1;
+}
 .discard-actions { margin-top: 12px; }
 
 /* ============ 棋盘区 ============ */

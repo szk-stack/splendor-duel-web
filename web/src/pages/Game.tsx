@@ -4,23 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store'
 import type { Action, BuyOption, CardData, LegalAction } from '../types'
 import { CAPACITY_LABEL } from '../api'
+import { changeDiscard, toggleTakeCell } from '../gameLogic'
 import { ChipArea } from '../components/ChipArea'
 import { CardGrid } from '../components/CardGrid'
 import { PlayerPanel } from '../components/PlayerPanel'
 import { ActionBar, type Mode } from '../components/ActionBar'
 import { PaymentPanel } from '../components/PaymentPanel'
+import { DiscardPanel } from '../components/DiscardPanel'
 import { Banner } from '../components/Banner'
-
-function inLine(cells: number[]): boolean {
-  if (cells.length <= 1) return true
-  const dir = (a: number, b: number) => [a % 5 - b % 5, Math.floor(a / 5) - Math.floor(b / 5)]
-  const d = dir(cells[0], cells[1])
-  for (let i = 1; i < cells.length - 1; i++) {
-    const d2 = dir(cells[i], cells[i + 1])
-    if (d[0] !== d2[0] || d[1] !== d2[1]) return false
-  }
-  return true
-}
 
 export function GamePage() {
   const nav = useNavigate()
@@ -58,14 +49,9 @@ export function GamePage() {
 
   // ---------- 点击处理 ----------
 
-  const toggleDiscardColor = (color: string) => {
-    setDiscardSel((prev) => {
-      const next = { ...prev }
-      const cur = next[color] ?? 0
-      if (cur >= (me?.tokens[color as keyof typeof me.tokens] ?? 0)) return prev
-      next[color] = cur + 1
-      return next
-    })
+  const changeDiscardColor = (color: string, delta: number) => {
+    const held = me?.tokens[color as keyof typeof me.tokens] ?? 0
+    setDiscardSel((prev) => changeDiscard(prev, color, delta, held))
   }
 
   const onCellClick = (cell: number) => {
@@ -89,12 +75,7 @@ export function GamePage() {
       return
     }
     if (mode === 'take' && takeLegal) {
-      setSelCells((prev) => {
-        if (prev.includes(cell)) return prev.filter((c) => c !== cell)
-        if (prev.length >= 3) return prev
-        const next = [...prev, cell]
-        return inLine(next) ? next : prev
-      })
+      setSelCells((prev) => toggleTakeCell(prev, cell))
     }
   }
 
@@ -299,38 +280,14 @@ export function GamePage() {
         <div className="banner banner-turn">已选要保留的牌 — 请点击棋盘上的【金币】完成保留</div>
       )}
 
-      {gameState.phase === 'discard' && myTurn && (
-        <div className="discard-panel">
-          <h4>
-            请弃掉 {legalActions?.discard?.over ?? 0} 个筹码（已选{' '}
-            {Object.values(discardSel).reduce((s, n) => s + n, 0)}）
-          </h4>
-          <div className="discard-chips">
-            {(Object.entries(me.tokens) as [string, number][]).map(([color, count]) =>
-              count > 0 ? (
-                <button
-                  key={color}
-                  className={`discard-chip chip chip-${color}`}
-                  onClick={() => toggleDiscardColor(color)}
-                  title={`点击弃掉 1 个（持有 ${count}）`}
-                >
-                  {count} <i>−{(discardSel[color] ?? 0) > 0 ? discardSel[color] : ''}</i>
-                </button>
-              ) : null,
-            )}
-          </div>
-          <div className="discard-actions">
-            <button
-              className="action-btn action-btn-confirm"
-              disabled={
-                Object.values(discardSel).reduce((s, n) => s + n, 0) !== (legalActions?.discard?.over ?? 0)
-              }
-              onClick={submitDiscard}
-            >
-              确认弃牌
-            </button>
-          </div>
-        </div>
+      {gameState.phase === 'discard' && myTurn && legalActions?.discard && (
+        <DiscardPanel
+          over={legalActions.discard.over}
+          hand={me.tokens}
+          selected={discardSel}
+          onChange={changeDiscardColor}
+          onConfirm={submitDiscard}
+        />
       )}
 
       {selCard && (
