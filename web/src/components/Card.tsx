@@ -33,9 +33,10 @@ export function CardView({ card, selected, highlight, dimmed, onClick, showCost 
       <div className="card-top">
         {card.points > 0 && <span className="card-points">{card.points}</span>}
         {card.crowns > 0 && (
+          // 皇冠统一右上角（margin-left:auto 在无分数时也靠右）
           <span className="card-crowns">
             {Array.from({ length: card.crowns }).map((_, i) => (
-              <CrownIcon key={i} size={12} />
+              <CrownIcon key={i} size={14} />
             ))}
           </span>
         )}

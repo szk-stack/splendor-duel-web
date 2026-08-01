@@ -168,7 +168,7 @@ a { color: var(--accent-2); cursor: pointer; }
 
 .card-top { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; }
 .card-points { font-size: 17px; font-weight: 800; }
-.card-crowns { display: flex; gap: 1px; }
+.card-crowns { display: flex; gap: 1px; margin-left: auto; }
 .card-gem { display: flex; flex-direction: column; align-items: center; }
 .card-gem-empty {
   display: flex; flex-direction: column; align-items: center;
