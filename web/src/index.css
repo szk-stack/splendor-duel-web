@@ -74,6 +74,23 @@ a { color: var(--accent-2); cursor: pointer; }
 .home-card label { display: flex; flex-direction: column; gap: 6px; text-align: left; color: var(--text-dim); font-size: 13px; }
 .home-divider { color: var(--text-dim); font-size: 13px; margin: 4px 0; }
 
+/* 首页规则介绍折叠栏 */
+.home-rules {
+  margin: 40px auto 0; max-width: 560px; text-align: left;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: 14px; padding: 12px 18px;
+}
+.home-rules summary {
+  cursor: pointer; font-weight: 700; font-size: 15px;
+  color: var(--accent); user-select: none;
+}
+.home-rules summary:hover { opacity: 0.85; }
+.home-rules-content { margin-top: 10px; color: var(--text-dim); font-size: 14px; line-height: 1.7; }
+.home-rules-content h3 { color: var(--text); font-size: 14px; margin: 14px 0 4px; }
+.home-rules-content ul { margin: 4px 0 8px; padding-left: 20px; }
+.home-rules-content li { margin-bottom: 3px; }
+.home-rules-content b { color: var(--text); }
+
 /* ============ 大厅 ============ */
 .lobby-page { text-align: center; padding-top: 60px; }
 .lobby-tip { color: var(--text-dim); }
