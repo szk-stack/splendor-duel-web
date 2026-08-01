@@ -179,7 +179,6 @@ async def _handle_action(room: Room, session, action: dict):
 
 async def _handle_leave(room: Room, session):
     """退出房间：释放席位。对局进行中则对手获胜（forfeit），房间回到等待状态。"""
-    manager = app.state.manager
     # 对局进行中 -> 对手获胜
     if room.game is not None and room.game.state.phase != Phase.GAME_OVER:
         game = room.game
@@ -193,8 +192,9 @@ async def _handle_leave(room: Room, session):
     room.game = None
     room.status = "waiting"
     room.touch()
+    # 最后一个玩家退出也不立即销毁房间：保留 30 分钟（清理任务回收），
+    # 期间房间码仍可让朋友加入
     if not room.players:
-        await manager.close_room(room.code, "房间已关闭")
         return
     opp = next(iter(room.players.values()))
     if opp.ws is not None:

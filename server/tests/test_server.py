@@ -182,6 +182,36 @@ def test_leave_midgame_rejoin(client):
     ctx1.__exit__(None, None, None)
 
 
+def test_last_player_leave_room_survives(client):
+    """最后一个玩家退出后房间保留（30 分钟窗口），房间码仍可加入。"""
+    r0 = create_room(client, "A")
+    r1 = join_room(client, r0["room_code"], "B")
+    ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])
+    recv_until(ws0, "hello")
+    ctx1, ws1 = _open_ws(client, r0["room_code"], r1["token"])
+    recv_until(ws1, "hello")
+    recv_until(ws0, "state")
+    recv_until(ws1, "state")
+
+    # A 退出（对局中 -> B 获胜 forfeit），房间剩 B
+    ws0.send_json({"type": "leave"})
+    recv_until(ws1, "state")
+    ctx0.__exit__(None, None, None)
+
+    # B 也退出 -> 房间空，但不销毁
+    ws1.send_json({"type": "leave"})
+    ctx1.__exit__(None, None, None)
+
+    # 房间码仍可加入（slot 0）
+    r2 = client.post(f"/api/rooms/{r0['room_code']}/join", json={"nickname": "C"})
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["slot"] == 0
+    ctx2, ws2 = _open_ws(client, r0["room_code"], r2.json()["token"])
+    hello = recv_until(ws2, "hello")
+    assert hello["started"] is False  # 等待中，未开局
+    ctx2.__exit__(None, None, None)
+
+
 def test_ping_pong(client):
     r0 = create_room(client)
     ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])

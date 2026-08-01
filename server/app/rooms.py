@@ -76,8 +76,11 @@ class RoomManager:
             for code, room in self.rooms.items():
                 if now - room.last_activity > config.ROOM_TTL:
                     dead.append(code)
+                elif not room.players:
+                    # 空房间（全员退出）保留 ABANDON_TTL 供房间码重进
+                    if now - room.last_activity > config.ABANDON_TTL:
+                        dead.append(code)
                 elif all(p.disconnected_at for p in room.players.values()) \
-                        and room.players \
                         and now - min(p.disconnected_at for p in room.players.values()) \
                         > config.ABANDON_TTL:
                     dead.append(code)
