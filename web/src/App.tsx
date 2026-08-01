@@ -1,9 +1,11 @@
-import { useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { restoreSession, useGameStore } from './store'
 import { HomePage } from './pages/Home'
 import { LobbyPage } from './pages/Lobby'
 import { GamePage } from './pages/Game'
+
+// 模块加载时同步恢复会话（必须在首次渲染前，否则 Guard 会重定向回首页）
+restoreSession()
 
 function Guard({ children }: { children: React.ReactNode }) {
   const room = useGameStore((s) => s.room)
@@ -12,10 +14,6 @@ function Guard({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  useEffect(() => {
-    restoreSession()
-  }, [])
-
   return (
     <HashRouter>
       <Routes>

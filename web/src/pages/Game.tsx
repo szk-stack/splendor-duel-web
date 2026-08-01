@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store'
 import type { Action, BuyOption, CardData, LegalAction } from '../types'
+import { CAPACITY_LABEL } from '../api'
 import { ChipArea } from '../components/ChipArea'
 import { CardGrid } from '../components/CardGrid'
 import { PlayerPanel } from '../components/PlayerPanel'
@@ -23,10 +24,15 @@ function inLine(cells: number[]): boolean {
 
 export function GamePage() {
   const nav = useNavigate()
-  const { room, gameState, legalActions, error, banner, sendAction, reset } = useGameStore()
+  const { room, gameState, legalActions, error, banner, sendAction, reset, connStatus } = useGameStore()
   const [mode, setMode] = useState<Mode>('none')
   const [selCells, setSelCells] = useState<number[]>([])
   const [selCard, setSelCard] = useState<{ opt: BuyOption } | null>(null)
+  const [pendingReserve, setPendingReserve] = useState<{
+    source: 'pyramid' | 'deck'
+    tier: number
+    slot?: number
+  } | null>(null)
   const [busy, setBusy] = useState(false)
   const [discardSel, setDiscardSel] = useState<Record<string, number>>({})
 
@@ -35,6 +41,7 @@ export function GamePage() {
     setMode('none')
     setSelCells([])
     setSelCard(null)
+    setPendingReserve(null)
     setDiscardSel({})
     setBusy(false)
   }, [gameState?.turn, gameState?.current])
@@ -63,6 +70,19 @@ export function GamePage() {
 
   const onCellClick = (cell: number) => {
     if (!myTurn || !gameState) return
+    // 保留流程第二步：选择要拿的金币
+    if (pendingReserve && reserveLegal && reserveLegal.gold_cells.includes(cell)) {
+      sendAction({
+        kind: 'reserve',
+        source: pendingReserve.source,
+        tier: pendingReserve.tier,
+        ...(pendingReserve.slot !== undefined ? { slot: pendingReserve.slot } : {}),
+        gold_cell: cell,
+      })
+      setPendingReserve(null)
+      setMode('none')
+      return
+    }
     if (mode === 'privilege' && privilegeLegal) {
       sendAction({ kind: 'use_privilege', cell })
       setMode('none')
@@ -86,10 +106,8 @@ export function GamePage() {
       )
       if (opt) setSelCard({ opt })
     } else if (mode === 'reserve' && reserveLegal) {
-      const goldCell = reserveLegal.gold_cells[0]
-      if (goldCell === undefined) return
-      sendAction({ kind: 'reserve', source: 'pyramid', tier, slot, gold_cell: goldCell })
-      setMode('none')
+      // 进入保留流程：先选明牌，再选金币
+      setPendingReserve({ source: 'pyramid', tier, slot })
     }
   }
 
@@ -101,16 +119,15 @@ export function GamePage() {
 
   const onDeckClick = (tier: number) => {
     if (!myTurn || !gameState || mode !== 'reserve' || !reserveLegal) return
-    const goldCell = reserveLegal.gold_cells[0]
-    if (goldCell === undefined) return
-    sendAction({ kind: 'reserve', source: 'deck', tier, gold_cell: goldCell })
-    setMode('none')
+    setPendingReserve({ source: 'deck', tier })
   }
 
   const buyablePyramid = (card: CardData) =>
-    myTurn && mode === 'buy' && !!buyLegal?.options.find(
+    myTurn &&
+    ((mode === 'buy' && !!buyLegal?.options.find(
       (o) => o.source === 'pyramid' && o.card.id === card.id,
-    )
+    )) ||
+      (mode === 'reserve' && !!reserveLegal))
   const buyableReserved = (card: CardData) =>
     myTurn && mode === 'buy' && !!buyLegal?.options.find(
       (o) => o.source === 'reserved' && o.card_id === card.id,
@@ -154,19 +171,30 @@ export function GamePage() {
   }
 
   const selectableCells = myTurn
-    ? mode === 'take'
-      ? takeLegal?.cells ?? null
-      : mode === 'privilege'
-        ? privilegeLegal?.cells ?? null
-        : null
+    ? pendingReserve
+      ? reserveLegal?.gold_cells ?? null
+      : mode === 'take'
+        ? takeLegal?.cells ?? null
+        : mode === 'privilege'
+          ? privilegeLegal?.cells ?? null
+          : null
     : null
 
   // ---------- 渲染 ----------
 
   if (!gameState || !me || !opp) {
+    const connecting = connStatus !== 'open'
     return (
       <div className="page">
-        <div className="banner">对局尚未开始…（返回 <a onClick={() => { reset(); nav('/') }}>首页</a>）</div>
+        <div className="banner">
+          {connecting ? (
+            '正在连接对局…（刷新后自动重连）'
+          ) : (
+            <>
+              对局尚未开始…（返回 <a onClick={() => { reset(); nav('/') }}>首页</a>）
+            </>
+          )}
+        </div>
       </div>
     )
   }
@@ -191,14 +219,21 @@ export function GamePage() {
 
       <div className="board">
         {gameState.royal_pool.length > 0 && (
-          <div className="royal-row">
-            {gameState.royal_pool.map((r) => (
-              <div key={r.id} className={`royal-mini-card ${r.capacity ? 'has-capacity' : ''}`}>
-                <b>{r.points}</b>
-                <span>分</span>
-                {r.capacity && <i className="royal-cap">{r.capacity}</i>}
-              </div>
-            ))}
+          <div className="royal-area">
+            <div className="royal-title">皇家牌（拥有 3 个皇冠时取第 1 张，6 个皇冠时取第 2 张，每人最多 2 张）</div>
+            <div className="royal-row">
+              {gameState.royal_pool.map((r) => (
+                <div key={r.id} className={`royal-mini-card ${r.capacity ? 'has-capacity' : ''}`}>
+                  <b>{r.points}</b>
+                  <span>分</span>
+                  {r.capacity ? (
+                    <i className="royal-cap">{CAPACITY_LABEL[r.capacity] ?? r.capacity}</i>
+                  ) : (
+                    <i className="royal-cap royal-cap-none">无能力</i>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -251,12 +286,17 @@ export function GamePage() {
             setMode('none')
             setSelCells([])
             setSelCard(null)
+            setPendingReserve(null)
           }}
           onFillBoard={() => {
             sendAction({ kind: 'fill_board' })
             setBusy(true)
           }}
         />
+      )}
+
+      {pendingReserve && (
+        <div className="banner banner-turn">已选要保留的牌 — 请点击棋盘上的【金币】完成保留</div>
       )}
 
       {gameState.phase === 'discard' && myTurn && (
