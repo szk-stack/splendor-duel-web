@@ -99,6 +99,14 @@ export function GamePage() {
     if (opt) setSelCard({ opt })
   }
 
+  const onDeckClick = (tier: number) => {
+    if (!myTurn || !gameState || mode !== 'reserve' || !reserveLegal) return
+    const goldCell = reserveLegal.gold_cells[0]
+    if (goldCell === undefined) return
+    sendAction({ kind: 'reserve', source: 'deck', tier, gold_cell: goldCell })
+    setMode('none')
+  }
+
   const buyablePyramid = (card: CardData) =>
     myTurn && mode === 'buy' && !!buyLegal?.options.find(
       (o) => o.source === 'pyramid' && o.card.id === card.id,
@@ -211,6 +219,8 @@ export function GamePage() {
               clickable={buyablePyramid}
               selectedId={selCard?.opt.card.id}
               onClick={onCardClick}
+              deckClickable={myTurn && mode === 'reserve' && !!reserveLegal}
+              onDeckClick={onDeckClick}
             />
           ))}
         </div>

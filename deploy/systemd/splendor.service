@@ -1,0 +1,23 @@
+# 璀璨宝石：对决 - systemd 服务单元
+# 放置位置: /etc/systemd/system/splendor.service
+# 注意：必须单 worker（--workers 1），房间状态在进程内存，多 worker 会丢失房间
+
+[Unit]
+Description=Splendor Duel Web Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/splendor/server
+# 使用项目自带虚拟环境的 uvicorn
+ExecStart=/opt/splendor/server/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+# 可选调优参数（默认即可）：
+# Environment=SPLENDOR_DISCONNECT_GRACE=120
+# Environment=SPLENDOR_ROOM_TTL=7200
+
+[Install]
+WantedBy=multi-user.target

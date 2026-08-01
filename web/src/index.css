@@ -190,6 +190,8 @@ a { color: var(--accent-2); cursor: pointer; }
 .tier-2 .card { width: 84px; height: 117px; }
 .tier-1 .card { width: 86px; height: 120px; }
 .deck-info { font-size: 12px; color: var(--text-dim); background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; margin-left: 4px; }
+.deck-info-clickable { border-color: var(--accent); color: var(--accent); cursor: pointer; }
+.deck-info-clickable:hover { background: rgba(232, 179, 75, 0.15); }
 
 /* ============ 玩家面板 ============ */
 .player-panel {
