@@ -29,8 +29,10 @@ export function GamePage() {
   const [busy, setBusy] = useState(false)
   const [discardSel, setDiscardSel] = useState<Record<string, number>>({})
 
-  // 新状态到达后清空所有选择（服务端状态是唯一真相）；
-  // 收到错误（行动被拒）时同样复位 busy 与选择，避免界面卡死
+  // 每次服务端广播（新 gameState 对象）都复位 busy 与选择：
+  // - 强制行动后回合/玩家变化
+  // - 可选行动（特权/补充棋盘）后回合不变，但同样需要复位 busy
+  // - 收到错误（行动被拒）时也要复位，避免界面卡死
   useEffect(() => {
     setMode('none')
     setSelCells([])
@@ -38,7 +40,7 @@ export function GamePage() {
     setPendingReserve(null)
     setDiscardSel({})
     setBusy(false)
-  }, [gameState?.turn, gameState?.current, error])
+  }, [gameState, error])
 
   const me = gameState?.players.find((p) => p.slot === room?.slot)
   const opp = gameState?.players.find((p) => p.slot !== room?.slot)
