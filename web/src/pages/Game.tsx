@@ -351,10 +351,15 @@ export function GamePage() {
                 (gameState.winner === me.slot ? '对手认输' : '你认输了')}
               {gameState.win_reason === 'forfeit' && '对手离开了，你获胜'}
             </p>
+            {gameState.win_reason === 'forfeit' && (
+              <p className="muted">房间还在，把房间码 {room?.code} 告诉朋友即可加入新对局</p>
+            )}
             <div className="victory-actions">
-              <button className="action-btn action-btn-confirm" onClick={rematch}>
-                再来一局
-              </button>
+              {gameState.win_reason !== 'forfeit' && (
+                <button className="action-btn action-btn-confirm" onClick={rematch}>
+                  再来一局
+                </button>
+              )}
               <button className="action-btn" onClick={exitRoom}>
                 返回首页
               </button>

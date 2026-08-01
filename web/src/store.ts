@@ -58,7 +58,9 @@ export const useGameStore = create<GameStore>((set) => ({
   create: async (nickname) => {
     const r = await createRoom(nickname)
     const room = { code: r.room_code, token: r.token, slot: r.slot }
-    set({ room, nickname, connStatus: 'connecting' })
+    // 清掉上一局的残留状态，避免新房间误显示旧对局
+    set({ room, nickname, connStatus: 'connecting', gameState: null, legalActions: null,
+          lastEvents: [], error: null, banner: null })
     sessionStorage.setItem('splendor_room', JSON.stringify(room))
     sessionStorage.setItem('splendor_nickname', nickname)
     wsClient.connect(room.code, room.token)
@@ -67,7 +69,8 @@ export const useGameStore = create<GameStore>((set) => ({
   join: async (code, nickname) => {
     const r = await joinRoom(code, nickname)
     const room = { code: r.room_code, token: r.token, slot: r.slot }
-    set({ room, nickname, connStatus: 'connecting' })
+    set({ room, nickname, connStatus: 'connecting', gameState: null, legalActions: null,
+          lastEvents: [], error: null, banner: null })
     sessionStorage.setItem('splendor_room', JSON.stringify(room))
     sessionStorage.setItem('splendor_nickname', nickname)
     wsClient.connect(room.code, room.token)
@@ -83,11 +86,13 @@ export const useGameStore = create<GameStore>((set) => ({
 
   leave: () => {
     wsClient.send({ type: 'leave' })
-    // 等服务端处理完再断开（消息是异步发送的）
+    // 等服务端处理完再断开（消息是异步发送的），同时清空本地对局状态
     setTimeout(() => {
       wsClient.close()
       sessionStorage.removeItem('splendor_room')
       sessionStorage.removeItem('splendor_nickname')
+      set({ room: null, gameState: null, legalActions: null, lastEvents: [],
+            error: null, banner: null })
     }, 300)
   },
 
