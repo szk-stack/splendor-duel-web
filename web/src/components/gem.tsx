@@ -15,8 +15,8 @@ export function cardTheme(bonus: TokenColor | 'joker' | null): string {
 
 /** 宝石 SVG 图标（六边形切面，纯矢量无版权） */
 export function GemIcon({ color, size = 14 }: { color: TokenColor | 'joker' | null; size?: number }) {
-  // 灰卡/百搭用中性色
-  const fill = color === 'joker' ? '#f9d976' : color === null ? '#8a8f98' : `var(--gem-${color})`
+  // 百搭卡用白色（多彩渐变底上对比更强）；灰卡显示空轮廓，不在此处渲染
+  const fill = color === 'joker' ? '#ffffff' : color === null ? '#8a8f98' : `var(--gem-${color})`
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden>
       <polygon points="10,1 18,6 15,18 5,18 2,6" fill={fill} stroke="#ffffff88" strokeWidth="1" />

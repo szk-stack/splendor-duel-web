@@ -159,7 +159,10 @@ a { color: var(--accent-2); cursor: pointer; }
 .card-theme-green  { background: linear-gradient(160deg, #3d9c68, #2a7249 60%, #1f5437); }
 .card-theme-red    { background: linear-gradient(160deg, #b34a4a, #8a3434 60%, #642525); }
 .card-theme-black  { background: linear-gradient(160deg, #555c70, #3d4354 60%, #2c313e); }
-.card-theme-joker  { background: linear-gradient(160deg, #a5873a, #7d6426 60%, #5c4819); }
+/* 百搭卡：多彩渐变，表达"万能/任意色" */
+.card-theme-joker  {
+  background: linear-gradient(160deg, #e0647e, #e8a34b 28%, #63c98c 55%, #5b9be8 80%, #9b7bd9);
+}
 /* 无奖励（灰）卡：亮银灰，与黑曜石明显区分 */
 .card-theme-gray   { background: linear-gradient(160deg, #9aa3b8, #7d8599 60%, #626a7d); }
 
