@@ -7,6 +7,9 @@ export interface RoomResult {
   slot: number
 }
 
+// 子路径前缀：开发环境 BASE_URL='/'；生产构建时 --base=/splendir-duel/ 自动带上
+export const BASE = import.meta.env.BASE_URL
+
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
@@ -21,11 +24,11 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 }
 
 export function createRoom(nickname: string): Promise<RoomResult> {
-  return post<RoomResult>('/api/rooms', { nickname })
+  return post<RoomResult>(`${BASE}api/rooms`, { nickname })
 }
 
 export function joinRoom(code: string, nickname: string): Promise<RoomResult> {
-  return post<RoomResult>(`/api/rooms/${encodeURIComponent(code)}/join`, { nickname })
+  return post<RoomResult>(`${BASE}api/rooms/${encodeURIComponent(code)}/join`, { nickname })
 }
 
 // 筹码展示辅助（前端通用）

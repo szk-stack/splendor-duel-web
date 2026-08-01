@@ -44,7 +44,8 @@ export class WsClient {
   private open() {
     this.status = 'connecting'
     const proto = location.protocol === 'https:' ? 'wss://' : 'ws://'
-    const url = `${proto}${location.host}/ws?room=${encodeURIComponent(this.code)}&token=${encodeURIComponent(this.token)}`
+    // BASE_URL 前缀：开发环境 '/'；生产子路径部署如 /splendir-duel/
+    const url = `${proto}${location.host}${import.meta.env.BASE_URL}ws?room=${encodeURIComponent(this.code)}&token=${encodeURIComponent(this.token)}`
     const ws = new WebSocket(url)
     this.ws = ws
 
