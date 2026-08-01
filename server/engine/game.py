@@ -180,6 +180,8 @@ class Game:
                             if not stack_targets:
                                 continue
                             opt["stack_targets"] = stack_targets
+                        if actions._royal_eligible(state, p, extra_crowns=card["crowns"]):
+                            opt["royal_required"] = True
                         buyable.append(opt)
         for cid in p.reserved:
             card = self.library.card(cid)
@@ -189,6 +191,8 @@ class Game:
                     if not stack_targets:
                         continue
                     opt["stack_targets"] = stack_targets
+                if actions._royal_eligible(state, p, extra_crowns=card["crowns"]):
+                    opt["royal_required"] = True
                 buyable.append(opt)
         if buyable:
             opts.append({"kind": "buy", "options": buyable})
