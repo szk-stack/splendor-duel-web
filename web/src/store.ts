@@ -21,7 +21,7 @@ interface GameStore {
   lastEvents: unknown[]
   error: string | null
   banner: string | null
-  create: (nickname: string) => Promise<void>
+  create: (nickname: string, ai?: boolean) => Promise<void>
   join: (code: string, nickname: string) => Promise<void>
   sendAction: (action: Action) => void
   rematch: () => void
@@ -69,8 +69,8 @@ export const useGameStore = create<GameStore>((set) => ({
   error: null,
   banner: null,
 
-  create: async (nickname) => {
-    const r = await createRoom(nickname)
+  create: async (nickname, ai = false) => {
+    const r = await createRoom(nickname, ai)
     const room = { code: r.room_code, token: r.token, slot: r.slot }
     // 清掉上一局的残留状态，避免新房间误显示旧对局
     set({ room, nickname, connStatus: 'connecting', gameState: null, legalActions: null,

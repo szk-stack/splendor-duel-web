@@ -28,6 +28,7 @@ class PlayerSession:
     nickname: str
     ws: object = None          # WebSocket | None
     disconnected_at: float = None
+    is_ai: bool = False        # AI 玩家（人机模式）无真实连接
 
 
 @dataclass
@@ -41,6 +42,8 @@ class Room:
     last_activity: float = field(default_factory=time.time)
     seed: int = 0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    ai_mode: bool = False                          # 人机模式：slot 1 为 AI
+    ai_busy: bool = False                          # AI 回合任务进行中
 
     def touch(self):
         self.last_activity = time.time()
@@ -98,13 +101,16 @@ class RoomManager:
                 except Exception:
                     pass
 
-    def create(self, nickname: str) -> tuple:
-        """创建房间，返回 (code, token, slot=0)。"""
+    def create(self, nickname: str, ai: bool = False) -> tuple:
+        """创建房间，返回 (code, token, slot=0)。ai=True 时 slot 1 为 AI 玩家。"""
         nickname = sanitize_nickname(nickname)
         code = self._gen_code()
-        room = Room(code=code, creator_nickname=nickname)
+        room = Room(code=code, creator_nickname=nickname, ai_mode=ai)
         token = secrets.token_urlsafe(24)
         room.players[0] = PlayerSession(slot=0, token=token, nickname=nickname)
+        if ai:
+            room.players[1] = PlayerSession(slot=1, token="AI", nickname="AI", is_ai=True)
+            room.status = "waiting"  # 真人连接后即开局
         self.rooms[code] = room
         return code, token, 0
 

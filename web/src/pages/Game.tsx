@@ -235,6 +235,7 @@ export function GamePage() {
         myTurn={myTurn}
         nickname={me.nickname}
         phase={gameState.phase}
+        opponentThinking={!myTurn && !!opp?.is_ai}
       />
 
       <PlayerPanel

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from engine.data import get_library
 from engine.game import Game
 from engine.types import InvalidAction, Phase
-from . import config, protocol
+from . import ai_player, config, protocol
 from .api import router as api_router
 from .rooms import Room, RoomError, RoomManager
 
@@ -64,18 +64,26 @@ async def _broadcast_state(room: Room, events: list, started: bool = False):
 
 
 async def _start_game(room: Room):
-    """双方都连接（WS 就位）后创建对局并广播开局状态。"""
+    """开局：真人房双方连接后开局；人机房真人连接即开局。"""
     if room.game is not None or not room.is_full():
         return
-    if any(p.ws is None for p in room.players.values()):
+    if room.ai_mode:
+        # 人机模式：只需真人（slot 0）连接
+        p0 = room.players.get(0)
+        if p0 is None or p0.ws is None:
+            return
+    elif any(p.ws is None for p in room.players.values()):
         return  # 等对手也连上 WS 再开局
     room.seed = secrets.randbelow(2 ** 32)
     nicknames = {p.slot: p.nickname for p in room.players.values()}
     room.game = Game(get_library(), seed=room.seed,
                      nicknames=(nicknames[0], nicknames[1]))
+    if room.ai_mode:
+        room.game.state.players[1].is_ai = True
     room.status = "playing"
     room.touch()
     await _broadcast_state(room, [], started=True)
+    _maybe_ai_turn(room)
 
 
 @app.websocket("/ws")
@@ -125,12 +133,14 @@ async def ws_endpoint(websocket: WebSocket,
             "events": [],
             "started": False,
         })
+        _maybe_ai_turn(r)  # 重连后若轮到 AI → 恢复 AI 回合
 
-    # 消息循环（心跳：服务端 60s 无帧即断开）
+    # 消息循环（心跳：AI 房间放宽超时，普通房间 60s 无帧即断开）
+    heartbeat = config.AI_WS_HEARTBEAT_TIMEOUT if r.ai_mode else config.WS_HEARTBEAT_TIMEOUT
     try:
         while True:
             data = await asyncio.wait_for(websocket.receive_json(),
-                                          timeout=config.WS_HEARTBEAT_TIMEOUT)
+                                          timeout=heartbeat)
             r.touch()
             mtype = data.get("type")
             if mtype == protocol.C_PING:
@@ -175,6 +185,7 @@ async def _handle_action(room: Room, session, action: dict):
                                  "message": e.message, "ref_action": action})
         return
     await _broadcast_state(room, events)
+    _maybe_ai_turn(room)  # 真人行动后轮到 AI → 触发 AI 回合
 
 
 async def _handle_leave(room: Room, session):
@@ -202,6 +213,35 @@ async def _handle_leave(room: Room, session):
             await _send(opp.ws, {"type": protocol.S_PLAYER_LEFT, "slot": session.slot})
         except Exception:
             pass
+
+
+def _maybe_ai_turn(room: Room):
+    """若轮到 AI 玩家且真人在线 → 启动 AI 回合任务（不阻塞事件循环）。"""
+    if not room.ai_mode or room.game is None:
+        return
+    p0 = room.players.get(0)
+    p1 = room.players.get(1)
+    if p0 is None or p1 is None or not p1.is_ai:
+        return
+    if p0.ws is None:  # 真人不在线：暂停 AI
+        return
+    if room.game.state.phase == "game_over" or room.game.state.current != 1:
+        return
+    if not room.ai_busy:
+        asyncio.create_task(ai_player.take_turn(room, lambda ev: _broadcast_state(room, ev)))
+        asyncio.create_task(_ai_keepalive(room))  # AI 思考期间给真人发保活帧
+
+
+async def _ai_keepalive(room: Room):
+    """AI 回合期间每 25s 给真人发一帧，防止服务端心跳超时断开连接。"""
+    p0 = room.players.get(0)
+    while room.ai_busy:
+        await asyncio.sleep(25)
+        if p0 and p0.ws is not None:
+            try:
+                await p0.ws.send_json({"type": protocol.S_AI_THINKING})
+            except Exception:
+                pass
 
 
 async def _handle_rematch(room: Room):

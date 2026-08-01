@@ -45,6 +45,7 @@ export function PlayerPanel({ player, isMe, isCurrent, reservedClickable, onRese
           <span className="player-name">
             {player.nickname || `玩家${player.slot + 1}`}
             {isMe && <span className="player-me-tag">（我）</span>}
+            {player.is_ai && <span className="player-ai-tag">🤖 AI</span>}
           </span>
           <div className="player-tokens">
             {colors.map((c) =>

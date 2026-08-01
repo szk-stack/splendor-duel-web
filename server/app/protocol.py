@@ -18,6 +18,7 @@ S_PLAYER_LEFT = "player_left"       # {slot}（对手掉线）
 S_OPPONENT_RECONNECTED = "opponent_reconnected"  # {slot}
 S_ERROR = "error"            # {code, message, ref_action?}
 S_PONG = "pong"
+S_AI_THINKING = "ai_thinking"  # AI 思考中（保活帧，前端可忽略）
 
 # 连接认证失败 / 房间关闭的 WebSocket close code
 CLOSE_AUTH_FAILED = 4001

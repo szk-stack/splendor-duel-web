@@ -46,6 +46,7 @@ export interface PlayerView {
   royal_cards: RoyalData[]
   reserved: CardData[]
   reserved_count: number
+  is_ai?: boolean
 }
 
 export interface GameState {

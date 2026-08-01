@@ -18,6 +18,7 @@ class PlayerState:
     bought: list = field(default_factory=list)
     reserved: list = field(default_factory=list)  # 保留牌 id 列表（含盲保留）
     royal_cards: list = field(default_factory=list)  # 已获皇家牌 id 列表
+    is_ai: bool = False  # 人机模式的 AI 玩家（仅展示用，引擎逻辑不依赖）
 
     def total_tokens(self) -> int:
         return sum(self.tokens.values())
@@ -50,6 +51,7 @@ class PlayerState:
             "crowns": self.crowns,
             "bought": self.bought,
             "royal_cards": [_royal_dict(library.royal(c)) for c in self.royal_cards],
+            "is_ai": self.is_ai,
             # 保留牌：本人可见卡牌明细，对手只见数量
             "reserved": [_card_dict(library.card(cid)) for cid in self.reserved] if is_owner else [],
             "reserved_count": len(self.reserved),
@@ -66,6 +68,7 @@ class PlayerState:
         p.bought = [dict(e) for e in d["bought"]]
         p.reserved = list(d["reserved"])
         p.royal_cards = list(d.get("royal_cards", []))
+        p.is_ai = d.get("is_ai", False)
         return p
 
 

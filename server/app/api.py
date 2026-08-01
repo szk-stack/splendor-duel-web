@@ -10,6 +10,7 @@ router = APIRouter(prefix="/api")
 
 class NicknameBody(BaseModel):
     nickname: str = Field(..., max_length=16)
+    ai: bool = False  # 人机模式：slot 1 为 AI 玩家
 
 
 def get_manager(request: Request) -> RoomManager:
@@ -28,7 +29,7 @@ async def health():
 @router.post("/rooms")
 async def create_room(body: NicknameBody, manager: RoomManager = Depends(get_manager)):
     try:
-        code, token, slot = manager.create(body.nickname)
+        code, token, slot = manager.create(body.nickname, ai=body.ai)
     except RoomError as e:
         return _err_response(e)
     return {"room_code": code, "token": token, "slot": slot}

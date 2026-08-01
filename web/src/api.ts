@@ -23,8 +23,8 @@ async function post<T>(url: string, body: unknown): Promise<T> {
   return data as T
 }
 
-export function createRoom(nickname: string): Promise<RoomResult> {
-  return post<RoomResult>(`${BASE}api/rooms`, { nickname })
+export function createRoom(nickname: string, ai = false): Promise<RoomResult> {
+  return post<RoomResult>(`${BASE}api/rooms`, { nickname, ai })
 }
 
 export function joinRoom(code: string, nickname: string): Promise<RoomResult> {

@@ -50,6 +50,14 @@ export function HomePage() {
           创建房间
         </button>
 
+        <button
+          className="action-btn action-btn-ai action-btn-wide"
+          disabled={busy || !nickname.trim()}
+          onClick={() => doAction(() => create(nickname, true))}
+        >
+          🤖 AI 对战（单人）
+        </button>
+
         <div className="home-divider">或加入房间</div>
 
         <label>
