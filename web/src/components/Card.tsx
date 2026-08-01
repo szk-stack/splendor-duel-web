@@ -58,9 +58,13 @@ export function CardView({ card, selected, highlight, dimmed, onClick, showCost 
           </span>
         ) : (
           <>
-            <GemIcon color={card.bonus} size={26} />
+            {/* 双奖励卡直接显示两个宝石图案 */}
+            <span className="card-gems">
+              {Array.from({ length: card.bonus_number }).map((_, i) => (
+                <GemIcon key={i} color={card.bonus} size={24} />
+              ))}
+            </span>
             {card.bonus === 'joker' && <span className="card-joker-tag">百搭</span>}
-            {card.bonus_number > 1 && <span className="card-bonus-x">×{card.bonus_number}</span>}
           </>
         )}
       </div>
