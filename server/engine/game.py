@@ -63,10 +63,16 @@ class Game:
 
     def step(self, slot: int, action: dict) -> list:
         """执行一个行动。非法时抛 InvalidAction。返回事件列表。"""
-        if slot != self.state.current:
-            raise InvalidAction("NOT_YOUR_TURN", "还没轮到你行动")
         state = self.state
         kind = action.get("kind")
+
+        # 认输不受回合限制（任意玩家随时可认输）
+        if kind == "concede":
+            actions.validate_concede(state, action)
+            return actions.apply_concede(state, slot)
+
+        if slot != state.current:
+            raise InvalidAction("NOT_YOUR_TURN", "还没轮到你行动")
 
         if kind == "use_privilege":
             actions.validate_use_privilege(state, action)

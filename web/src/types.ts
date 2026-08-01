@@ -132,4 +132,5 @@ export type ServerMessage =
 export type ClientMessage =
   | { type: 'hello'; nickname: string }
   | { type: 'action'; action: Action }
+  | { type: 'rematch' }
   | { type: 'ping' }

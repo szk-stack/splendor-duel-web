@@ -15,7 +15,9 @@ import { Banner } from '../components/Banner'
 
 export function GamePage() {
   const nav = useNavigate()
-  const { room, gameState, legalActions, error, banner, sendAction, reset, connStatus } = useGameStore()
+  const { room, gameState, legalActions, error, banner, sendAction, rematch, reset, connStatus } = useGameStore()
+  const [confirmExit, setConfirmExit] = useState(false)
+  const [confirmConcede, setConfirmConcede] = useState(false)
   const [mode, setMode] = useState<Mode>('none')
   const [selCells, setSelCells] = useState<number[]>([])
   const [selCard, setSelCard] = useState<{ opt: BuyOption } | null>(null)
@@ -180,8 +182,39 @@ export function GamePage() {
     )
   }
 
+  const exitRoom = () => {
+    reset()
+    nav('/')
+  }
+
+  const concede = () => {
+    sendAction({ kind: 'concede' })
+    setConfirmConcede(false)
+  }
+
   return (
     <div className="page game-page">
+      <div className="game-toolbar">
+        <span className="room-tag">房间 {room?.code}</span>
+        <span className="toolbar-spacer" />
+        {gameState.phase !== 'game_over' && (
+          <button
+            className={`action-btn ${confirmConcede ? 'action-btn-confirm' : ''}`}
+            onClick={() => (confirmConcede ? concede() : setConfirmConcede(true))}
+            onBlur={() => setConfirmConcede(false)}
+          >
+            {confirmConcede ? '确认认输？' : '认输'}
+          </button>
+        )}
+        <button
+          className={`action-btn ${confirmExit ? 'action-btn-confirm' : ''}`}
+          onClick={() => (confirmExit ? exitRoom() : setConfirmExit(true))}
+          onBlur={() => setConfirmExit(false)}
+        >
+          {confirmExit ? '确认退出？' : '退出'}
+        </button>
+      </div>
+
       <Banner
         error={error}
         banner={banner}
@@ -314,10 +347,17 @@ export function GamePage() {
               {gameState.win_reason === 'points' && '声望分达到 20 分'}
               {gameState.win_reason === 'crowns' && '收集到 10 个皇冠'}
               {gameState.win_reason?.startsWith('same_color') && '同色卡牌声望分达到 10 分'}
+              {gameState.win_reason === 'concede' &&
+                (gameState.winner === me.slot ? '对手认输' : '你认输了')}
             </p>
-            <button className="action-btn action-btn-confirm" onClick={() => { reset(); nav('/') }}>
-              返回首页
-            </button>
+            <div className="victory-actions">
+              <button className="action-btn action-btn-confirm" onClick={rematch}>
+                再来一局
+              </button>
+              <button className="action-btn" onClick={exitRoom}>
+                返回首页
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -24,6 +24,7 @@ interface GameStore {
   create: (nickname: string) => Promise<void>
   join: (code: string, nickname: string) => Promise<void>
   sendAction: (action: Action) => void
+  rematch: () => void
   clearError: () => void
   reset: () => void
 }
@@ -72,6 +73,10 @@ export const useGameStore = create<GameStore>((set) => ({
 
   sendAction: (action) => {
     wsClient.send({ type: 'action', action })
+  },
+
+  rematch: () => {
+    wsClient.send({ type: 'rematch' })
   },
 
   clearError: () => set({ error: null }),

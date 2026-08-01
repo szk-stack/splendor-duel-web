@@ -11,6 +11,7 @@
 |---|---|---|
 | `hello` | `nickname` | 连接后首帧（当前忽略，兼容用） |
 | `action` | `action: {...}` | 行动提交，字段见引擎 Action |
+| `rematch` | — | 对局结束后请求同房间再来一局 |
 | `ping` | — | 心跳 |
 
 ## 服务端 → 客户端
@@ -39,5 +40,6 @@
 | `reserve` | `gold_cell, source(pyramid\|deck), tier, slot?` | 拿金币 + 保留牌 |
 | `buy` | `source, tier, slot?/card_id?, payment, joker_target?, steal_color?, royal_steal_color?, take_cell?, royal_choice?` | 购买 + 能力选择 |
 | `discard` | `colors: {color: n}` | 弃牌阶段，弃到 10 个 |
+| `concede` | — | 认输（任意玩家随时可发，对手获胜，win_reason=concede） |
 
 `payment` 格式：`{color: {tokens: n, gold: m}}`（color ∈ 五色+pearl）。

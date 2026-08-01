@@ -465,6 +465,19 @@ def _resolve_capacity(state, card, action, slot, is_royal=False) -> list:
     return events
 
 
+def validate_concede(state, action) -> None:
+    """认输：对局进行中即可，任意玩家随时可认输。"""
+    if state.phase == Phase.GAME_OVER:
+        _err("GAME_OVER", "对局已结束")
+
+
+def apply_concede(state, slot: int) -> list:
+    state.winner = state.opponent(slot).slot
+    state.win_reason = "concede"
+    state.phase = Phase.GAME_OVER
+    return [{"type": "game_over", "winner": state.winner, "reason": "concede"}]
+
+
 # ---------------------------------------------------------------- 回合流转
 
 def finish_turn(state) -> list:

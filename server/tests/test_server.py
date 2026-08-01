@@ -113,6 +113,40 @@ def test_full_game_flow(client):
     ctx1.__exit__(None, None, None)
 
 
+def test_concede_and_rematch(client):
+    """认输结束对局 -> 再来一局重开。"""
+    r0 = create_room(client, "A")
+    r1 = join_room(client, r0["room_code"], "B")
+    ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])
+    recv_until(ws0, "hello")
+    ctx1, ws1 = _open_ws(client, r0["room_code"], r1["token"])
+    recv_until(ws1, "hello")
+    recv_until(ws0, "state")
+    recv_until(ws1, "state")
+
+    # 认输
+    ws0.send_json({"type": "action", "action": {"kind": "concede"}})
+    st0 = recv_until(ws0, "state")
+    st1 = recv_until(ws1, "state")
+    assert st0["state"]["winner"] == 1
+    assert st0["state"]["win_reason"] == "concede"
+    assert st0["events"][-1]["type"] == "game_over"
+
+    # 再来一局
+    ws1.send_json({"type": "rematch"})
+    rs0 = recv_until(ws0, "state")
+    rs1 = recv_until(ws1, "state")
+    assert rs0["started"] and rs1["started"]
+    assert rs0["state"]["winner"] is None
+    assert rs0["state"]["turn"] == 0
+    assert rs0["state"]["phase"] == "optional"
+    # 昵称保留
+    assert rs0["state"]["players"][0]["nickname"] == "A"
+
+    ctx0.__exit__(None, None, None)
+    ctx1.__exit__(None, None, None)
+
+
 def test_ping_pong(client):
     r0 = create_room(client)
     ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])

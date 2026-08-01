@@ -137,6 +137,8 @@ async def ws_endpoint(websocket: WebSocket,
                 await _send(websocket, {"type": protocol.S_PONG})
             elif mtype == protocol.C_ACTION:
                 await _handle_action(r, session, data.get("action") or {})
+            elif mtype == protocol.C_REMATCH:
+                await _handle_rematch(r)
             # hello 首帧仅作兼容，忽略
     except asyncio.TimeoutError:
         await websocket.close(code=1000, reason="心跳超时")
@@ -170,3 +172,16 @@ async def _handle_action(room: Room, session, action: dict):
                                  "message": e.message, "ref_action": action})
         return
     await _broadcast_state(room, events)
+
+
+async def _handle_rematch(room: Room):
+    """对局结束后同房间重开一局（新种子，保留昵称）。"""
+    if room.game is None or room.game.state.phase != "game_over":
+        return
+    room.seed = secrets.randbelow(2 ** 32)
+    nicknames = {p.slot: p.nickname for p in room.players.values()}
+    room.game = Game(get_library(), seed=room.seed,
+                     nicknames=(nicknames[0], nicknames[1]))
+    room.status = "playing"
+    room.touch()
+    await _broadcast_state(room, [], started=True)

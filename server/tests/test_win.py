@@ -154,3 +154,20 @@ def test_take_on_board_capacity(game):
     p = s.players[0]
     assert p.tokens["red"] == 1
     assert s.board[red_cells[0]] is None if red_cells else True
+
+
+def test_concede_anytime(game):
+    """认输：任意玩家随时可认输，对方获胜。"""
+    s = game.state
+    # 还没轮到 1 号也能认输
+    game.step(1, {"kind": "concede"})
+    assert s.phase.value == "game_over"
+    assert s.winner == 0
+    assert s.win_reason == "concede"
+    # 终局后不能再行动/再认输
+    from engine.types import InvalidAction
+    with pytest.raises(InvalidAction) as e:
+        game.step(0, {"kind": "take_tokens", "cells": [0]})
+    assert e.value.code == "GAME_OVER"
+    with pytest.raises(InvalidAction):
+        game.step(0, {"kind": "concede"})
