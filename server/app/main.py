@@ -45,10 +45,16 @@ def _session_for(room: Room, token: str):
     return None
 
 
-async def _broadcast_state(room: Room, events: list, started: bool = False):
-    """向双方广播个性化 state（保留牌按视角隐藏；legal_actions 只给轮到的玩家）。"""
+async def _broadcast_state(room: Room, events: list, started: bool = False,
+                           expect: object = None):
+    """向双方广播个性化 state（保留牌按视角隐藏；legal_actions 只给轮到的玩家）。
+
+    expect：调用方持有的 game 引用；对局已被替换时丢弃（防止旧事件混入新房状态）。
+    """
     if room.game is None:
         return  # 对局已结束/替换（过期 AI 任务可能携带旧事件）
+    if expect is not None and room.game is not expect:
+        return  # 对局已被替换，旧任务的事件作废
     for slot in (0, 1):
         p = room.players.get(slot)
         if p and p.ws is not None:
@@ -232,7 +238,9 @@ def _maybe_ai_turn(room: Room):
         return
     if not room.ai_busy:
         task = asyncio.create_task(
-            ai_player.take_turn(room, lambda ev: _broadcast_state(room, ev)))
+            ai_player.take_turn(room, lambda ev, g=room.game: _broadcast_state(room, ev, expect=g)))
+        # 连续失败重调度上限：3 次后放弃并告警（对局无解需人工干预）
+        room.ai_retry = getattr(room, "ai_retry", 0)
 
         def _on_done(t):
             if t.cancelled():
@@ -241,21 +249,30 @@ def _maybe_ai_turn(room: Room):
                 ok = t.result()
             except Exception:
                 ok = False
-            # 任务异常/无法推进且仍轮到 AI → 1s 后重新调度（防永久卡死）
             if not ok and room.game is not None \
                     and room.game.state.phase != "game_over" \
                     and room.game.state.current == 1:
-                asyncio.get_event_loop().call_later(1, lambda: _maybe_ai_turn(room))
+                room.ai_retry += 1
+                if room.ai_retry >= 3:
+                    print(f"[AI] 连续 {room.ai_retry} 次失败，停止重调度（房间 {room.code} 需人工处理）",
+                          flush=True)
+                    return
+                asyncio.get_running_loop().call_later(1, lambda: _maybe_ai_turn(room))
+            else:
+                room.ai_retry = 0
 
         task.add_done_callback(_on_done)
         asyncio.create_task(_ai_keepalive(room))  # AI 思考期间给真人发保活帧
 
 
 async def _ai_keepalive(room: Room):
-    """AI 回合期间每 25s 给真人发一帧，防止服务端心跳超时断开连接。"""
-    p0 = room.players.get(0)
+    """AI 回合期间每 25s 给真人发一帧，防止服务端心跳超时断开连接。
+
+    每次循环实时取真人会话（真人可能掉线重连，ws 引用会更新）。
+    """
     while room.ai_busy:
         await asyncio.sleep(25)
+        p0 = room.players.get(0)
         if p0 and p0.ws is not None:
             try:
                 await p0.ws.send_json({"type": protocol.S_AI_THINKING})

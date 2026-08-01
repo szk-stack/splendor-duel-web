@@ -151,10 +151,13 @@ def make_ai_room(library, seed=42):
     return room
 
 
-def run(room):
+def run(room, expect_game=None):
+    """运行 take_turn；expect_game 模拟 main.py 的广播丢弃（对局替换时旧事件作废）。"""
     events = []
 
     async def broadcast(ev):
+        if expect_game is not None and room.game is not expect_game:
+            return  # 对局已替换，旧任务事件丢弃
         events.append(ev)
 
     asyncio.run(take_turn(room, broadcast))
@@ -260,8 +263,21 @@ def test_take_turn_discard_fallback(library, monkeypatch):
     assert room.game.state.players[1].total_tokens() == 10
 
 
+class BlockingChat:
+    """在 API 调用期间执行回调（模拟等待期间对局被替换）。"""
+
+    def __init__(self, callback):
+        self.callback = callback
+        self.called = False
+
+    async def __call__(self, messages, **kw):
+        self.called = True
+        self.callback()
+        raise ai_player.ai_client.AIError("被替换")
+
+
 def test_take_turn_stale_game_exits(library, monkeypatch):
-    """对局被替换（重开/退出）后，过期 AI 任务立即退出。"""
+    """API 等待期间对局被替换 → 过期 AI 任务检测后退出，不广播旧事件。"""
     from app.rooms import PlayerSession, Room
     room = Room(code="STALE", ai_mode=True)
     room.players[0] = PlayerSession(slot=0, token="t0", nickname="真人", ws=object())
@@ -271,15 +287,18 @@ def test_take_turn_stale_game_exits(library, monkeypatch):
     cell = next(i for i, t in enumerate(room.game.state.board) if t != "gold")
     room.game.step(0, {"kind": "take_tokens", "cells": [cell]})
     old_game = room.game
-    # 对局被替换
-    room.game = Game(library, seed=8)
-    room.game.state.players[1].is_ai = True
-    fake = FakeChat(['{"kind": "take_tokens", "cells": [0]}'])
+
+    def replace():
+        # API 等待期间对局被替换（重开）
+        room.game = Game(library, seed=8)
+        room.game.state.players[1].is_ai = True
+
+    fake = BlockingChat(replace)
     monkeypatch.setattr(ai_player.ai_client, "chat", fake)
-    events = run(room)
-    assert fake.calls == 0  # 未调用模型
-    assert events == []
-    assert old_game.state.current == 1  # 旧对局保持原状
+    events = run(room, expect_game=old_game)
+    assert fake.called  # 模型被调用（API 等待期间替换）
+    assert events == []  # 旧任务事件被广播层丢弃
+    assert room.game.state.current == 0  # 新对局未被旧任务影响
 
 
 def test_normalize_buy_royal_steal_color(library):

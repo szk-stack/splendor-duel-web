@@ -1,5 +1,6 @@
 """AI 房间集成测试：创建/开局/AI 回合自动执行（mock 大模型）。"""
 import json
+import re
 import time
 
 import pytest
@@ -48,15 +49,23 @@ def _free_cell(state):
     return next(i for i, t in enumerate(state["board"]) if t not in (None, "gold"))
 
 
+class SmartChat:
+    """从提示词里的 ASCII 棋盘动态取一个非金币格（种子无关且必合法）。"""
+
+    def __init__(self):
+        self.calls = 0
+
+    async def __call__(self, messages, **kw):
+        self.calls += 1
+        content = messages[-1]["content"]
+        m = re.search(r"(\d+):(?!金)", content)
+        cell = int(m.group(1)) if m else 0
+        return json.dumps({"kind": "take_tokens", "cells": [cell]})
+
+
 def test_ai_room_full_flow(client, monkeypatch):
     """AI 房间：创建 → 真人连接即开局 → 真人行动 → AI 自动回合。"""
-    # 用固定合法回复（先取一个真实合法格位，随种子变化）
-    from engine.data import get_library
-    probe = get_library()
-    from engine.game import Game
-    g = Game(probe, seed=1)
-    free_cell = next(i for i, t in enumerate(g.state.board) if t not in (None, "gold"))
-    fake = FakeChat(json.dumps({"kind": "take_tokens", "cells": [free_cell]}))
+    fake = SmartChat()
     monkeypatch.setattr(ai_player.ai_client, "chat", fake)
 
     r = client.post("/api/rooms", json={"nickname": "真人", "ai": True})

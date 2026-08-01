@@ -164,7 +164,10 @@ class Game:
             opts.append({"kind": "take_tokens", "cells": non_gold})
 
         gold_cells = actions._gold_cells(state)
-        if gold_cells and len(p.reserved) < rules["reserve_limit"]:
+        # 保留行动需要金币 + 至少一张可保留的牌（展示区或牌库），否则不列为合法行动
+        has_reservable = any(c for slots in state.pyramid.values() for c in slots) \
+            or any(deck for deck in state.decks.values())
+        if gold_cells and has_reservable and len(p.reserved) < rules["reserve_limit"]:
             opts.append({
                 "kind": "reserve",
                 "gold_cells": gold_cells,
