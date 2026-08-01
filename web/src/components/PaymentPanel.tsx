@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import type { BoughtEntry, CardData, GameState, PlayerView, TokenColor } from '../types'
 import { GEM_COLORS } from '../types'
-import { defaultPayment, effectiveCost } from '../gameLogic'
+import { defaultPayment, effectiveCost, paymentValid } from '../gameLogic'
 import { chipClass } from './gem'
 
 interface Props {
@@ -36,10 +36,18 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
     return cell >= 0 ? String(cell) : ''
   })
 
-  const stealable = (Object.keys(me === me ? gameState.players.find((p) => p.slot !== me.slot)!.tokens : {}) as TokenColor[])
-    .filter((c) => c !== 'gold' && gameState.players.find((p) => p.slot !== me.slot)!.tokens[c] > 0)
+  const opponent = gameState.players.find((p) => p.slot !== me.slot)
+  const stealable = opponent
+    ? (Object.keys(opponent.tokens) as TokenColor[]).filter((c) => c !== 'gold' && opponent.tokens[c] > 0)
+    : []
 
   const goldUsed = Object.values(pay).reduce((s, p) => s + p.gold, 0)
+  const valid = paymentValid(pay, effCost, me.tokens.gold)
+  const invalidReason = !valid
+    ? goldUsed > me.tokens.gold
+      ? `金币使用超出持有量（${goldUsed}/${me.tokens.gold}）`
+      : '筹码支付不足'
+    : null
 
   const setColor = (color: string, field: 'tokens' | 'gold', delta: number) => {
     setPay((prev) => {
@@ -73,20 +81,21 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
             <span className="pay-need">需 {effCost[color]}</span>
             <div className="pay-steppers">
               <span>
-                筹码 <button onClick={() => setColor(color, 'tokens', -1)}>−</button>
+                筹码 <button aria-label={`减少${color}筹码`} onClick={() => setColor(color, 'tokens', -1)}>−</button>
                 <b>{pay[color]?.tokens ?? 0}</b>
-                <button onClick={() => setColor(color, 'tokens', 1)}>+</button>
+                <button aria-label={`增加${color}筹码`} onClick={() => setColor(color, 'tokens', 1)}>+</button>
               </span>
               <span>
-                金币 <button onClick={() => setColor(color, 'gold', -1)}>−</button>
+                金币 <button aria-label={`减少${color}金币`} onClick={() => setColor(color, 'gold', -1)}>−</button>
                 <b>{pay[color]?.gold ?? 0}</b>
-                <button onClick={() => setColor(color, 'gold', 1)}>+</button>
+                <button aria-label={`增加${color}金币`} onClick={() => setColor(color, 'gold', 1)}>+</button>
               </span>
             </div>
           </div>
         ) : null,
       )}
       <div className="pay-gold-sum">金币使用合计：{goldUsed} / {me.tokens.gold}</div>
+      {invalidReason && <div className="banner banner-error">{invalidReason}</div>}
 
       {card.bonus === 'joker' && stackTargets && (
         <label className="pay-option">
@@ -131,7 +140,9 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
       )}
 
       <div className="pay-actions">
-        <button className="action-btn action-btn-confirm" onClick={submit}>确认购买</button>
+        <button className="action-btn action-btn-confirm" disabled={!valid} onClick={submit}>
+          确认购买
+        </button>
         <button className="action-btn" onClick={onCancel}>取消</button>
       </div>
     </div>

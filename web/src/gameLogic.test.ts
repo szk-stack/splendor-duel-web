@@ -8,6 +8,7 @@ import {
   defaultPayment,
   toggleTakeCell,
   bonusOf,
+  paymentValid,
 } from './gameLogic'
 
 describe('inLine 格位成线判定', () => {
@@ -117,5 +118,25 @@ describe('toggleTakeCell 拿筹码选择', () => {
   })
   it('不成线的新格被拒', () => {
     expect(toggleTakeCell([0, 2], 7)).toEqual([0, 2])
+  })
+})
+
+describe('paymentValid 支付有效性（不足时按钮置灰）', () => {
+  const eff = { white: 3, blue: 0, green: 0, red: 0, black: 0, pearl: 0 }
+  it('足额支付有效', () => {
+    const pay = { white: { tokens: 2, gold: 1 } }
+    expect(paymentValid(pay, eff, 2)).toBe(true)
+  })
+  it('数量不足无效', () => {
+    const pay = { white: { tokens: 1, gold: 1 } }
+    expect(paymentValid(pay, eff, 2)).toBe(false)
+  })
+  it('金币合计超出持有量无效', () => {
+    const pay = { white: { tokens: 2, gold: 2 } }
+    expect(paymentValid(pay, eff, 1)).toBe(false)
+  })
+  it('费用为 0 的颜色可缺省', () => {
+    const pay = { white: { tokens: 3, gold: 0 } }
+    expect(paymentValid(pay, eff, 0)).toBe(true)
   })
 })

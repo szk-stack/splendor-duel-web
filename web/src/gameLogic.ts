@@ -77,3 +77,19 @@ export function toggleTakeCell(prev: number[], cell: number): number[] {
   if (prev.length >= 3) return prev
   return inLine([...prev, cell]) ? [...prev, cell] : prev
 }
+
+/** 支付明细是否有效：各色筹码+金币 >= 有效费用，且金币合计不超过持有量 */
+export function paymentValid(
+  pay: Record<string, { tokens: number; gold: number }>,
+  effCost: Record<string, number>,
+  goldHeld: number,
+): boolean {
+  let gold = 0
+  for (const color of [...GEM_COLORS, 'pearl']) {
+    const p = pay[color] ?? { tokens: 0, gold: 0 }
+    const need = effCost[color] ?? 0
+    if (p.tokens + p.gold < need) return false
+    gold += p.gold
+  }
+  return gold <= goldHeld
+}

@@ -29,7 +29,8 @@ export function GamePage() {
   const [busy, setBusy] = useState(false)
   const [discardSel, setDiscardSel] = useState<Record<string, number>>({})
 
-  // 新状态到达后清空所有选择（服务端状态是唯一真相）
+  // 新状态到达后清空所有选择（服务端状态是唯一真相）；
+  // 收到错误（行动被拒）时同样复位 busy 与选择，避免界面卡死
   useEffect(() => {
     setMode('none')
     setSelCells([])
@@ -37,7 +38,7 @@ export function GamePage() {
     setPendingReserve(null)
     setDiscardSel({})
     setBusy(false)
-  }, [gameState?.turn, gameState?.current])
+  }, [gameState?.turn, gameState?.current, error])
 
   const me = gameState?.players.find((p) => p.slot === room?.slot)
   const opp = gameState?.players.find((p) => p.slot !== room?.slot)
