@@ -160,12 +160,17 @@ a { color: var(--accent-2); cursor: pointer; }
 .card-theme-red    { background: linear-gradient(160deg, #b34a4a, #8a3434 60%, #642525); }
 .card-theme-black  { background: linear-gradient(160deg, #555c70, #3d4354 60%, #2c313e); }
 .card-theme-joker  { background: linear-gradient(160deg, #a5873a, #7d6426 60%, #5c4819); }
-.card-theme-gray   { background: linear-gradient(160deg, #5a6072, #42475a 60%, #313548); }
+/* 无奖励（灰）卡：亮银灰，与黑曜石明显区分 */
+.card-theme-gray   { background: linear-gradient(160deg, #9aa3b8, #7d8599 60%, #626a7d); }
 
 .card-top { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; }
 .card-points { font-size: 17px; font-weight: 800; }
 .card-crowns { display: flex; gap: 1px; }
 .card-gem { display: flex; flex-direction: column; align-items: center; }
+.card-gem-empty {
+  display: flex; flex-direction: column; align-items: center;
+  font-size: 10px; color: #e8e9efaa; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
 .card-joker-tag { font-size: 11px; background: #f5d97c; color: #4a3a08; border-radius: 6px; padding: 0 5px; font-weight: 700; margin-top: 2px; }
 .card-bonus-x { font-size: 11px; }
 .card-capacity { font-size: 10px; background: #00000055; border-radius: 6px; padding: 1px 6px; }

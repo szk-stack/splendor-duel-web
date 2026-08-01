@@ -41,9 +41,27 @@ export function CardView({ card, selected, highlight, dimmed, onClick, showCost 
         )}
       </div>
       <div className="card-gem">
-        <GemIcon color={card.bonus} size={26} />
-        {card.bonus === 'joker' && <span className="card-joker-tag">百搭</span>}
-        {card.bonus_number > 1 && <span className="card-bonus-x">×{card.bonus_number}</span>}
+        {card.bonus === null ? (
+          // 无奖励（灰）卡：虚线空宝石轮廓，表达"不产宝石"
+          <span className="card-gem-empty">
+            <svg width={26} height={26} viewBox="0 0 20 20" aria-hidden>
+              <polygon
+                points="10,1 18,6 15,18 5,18 2,6"
+                fill="none"
+                stroke="#e8e9ef88"
+                strokeWidth="1.2"
+                strokeDasharray="3 2.5"
+              />
+            </svg>
+            <span>无</span>
+          </span>
+        ) : (
+          <>
+            <GemIcon color={card.bonus} size={26} />
+            {card.bonus === 'joker' && <span className="card-joker-tag">百搭</span>}
+            {card.bonus_number > 1 && <span className="card-bonus-x">×{card.bonus_number}</span>}
+          </>
+        )}
       </div>
       {card.capacity && <div className="card-capacity">{CAPACITY_LABEL[card.capacity] ?? card.capacity}</div>}
       {showCost && (
