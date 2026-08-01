@@ -27,16 +27,19 @@ export function GemIcon({ color, size = 14 }: { color: TokenColor | 'joker' | nu
   )
 }
 
-export function CrownIcon({ size = 14 }: { size?: number }) {
+export function CrownIcon({ size = 14, outline = false }: { size?: number; outline?: boolean }) {
+  // outline: 黑边版本，用于彩色卡面上（面板深色背景上用默认深金边）
+  const stroke = outline ? '#000000' : '#b8860b'
+  const sw = outline ? 1.5 : 1
   return (
     <svg width={size} height={size} viewBox="0 0 20 16" aria-hidden>
       <path
         d="M1 12 L2 4 L7 8 L10 2 L13 8 L18 4 L19 12 Z"
         fill="#f5c542"
-        stroke="#b8860b"
-        strokeWidth="1"
+        stroke={stroke}
+        strokeWidth={sw}
       />
-      <rect x="1" y="13" width="18" height="2.5" rx="1" fill="#f5c542" stroke="#b8860b" strokeWidth="0.6" />
+      <rect x="1" y="13" width="18" height="2.5" rx="1" fill="#f5c542" stroke={stroke} strokeWidth={sw * 0.6} />
     </svg>
   )
 }

@@ -36,7 +36,7 @@ export function CardView({ card, selected, highlight, dimmed, onClick, showCost 
           // 皇冠统一右上角（margin-left:auto 在无分数时也靠右）
           <span className="card-crowns">
             {Array.from({ length: card.crowns }).map((_, i) => (
-              <CrownIcon key={i} size={14} />
+              <CrownIcon key={i} size={14} outline />
             ))}
           </span>
         )}
