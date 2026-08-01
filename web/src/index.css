@@ -154,7 +154,8 @@ a { color: var(--accent-2); cursor: pointer; }
   justify-content: center;
 }
 
-.card-theme-white  { background: linear-gradient(160deg, #6a7284, #4a5060 60%, #3c414e); }
+/* 白（钻石）卡：亮白系，与黑卡拉开明度 */
+.card-theme-white  { background: linear-gradient(160deg, #f4f7fb, #d3dbe6 60%, #aeb9c9); }
 .card-theme-blue   { background: linear-gradient(160deg, #3f6fb8, #2c4e88 60%, #233a63); }
 .card-theme-green  { background: linear-gradient(160deg, #3d9c68, #2a7249 60%, #1f5437); }
 .card-theme-red    { background: linear-gradient(160deg, #b34a4a, #8a3434 60%, #642525); }
@@ -163,8 +164,12 @@ a { color: var(--accent-2); cursor: pointer; }
 .card-theme-joker  {
   background: linear-gradient(160deg, #e0647e, #e8a34b 28%, #63c98c 55%, #5b9be8 80%, #9b7bd9);
 }
-/* 无奖励（灰）卡：亮银灰，与黑曜石明显区分 */
+/* 无奖励（灰）卡：中间银灰，介于白卡与黑卡之间 */
 .card-theme-gray   { background: linear-gradient(160deg, #9aa3b8, #7d8599 60%, #626a7d); }
+
+/* 白卡浅底深字（分数/文字改深色） */
+.card-theme-white { color: #1a1d2a; text-shadow: none; }
+.card-theme-white .card-points { color: #1a1d2a; text-shadow: none; }
 
 .card-top { display: flex; width: 100%; justify-content: space-between; align-items: flex-start; }
 .card-points { font-size: 17px; font-weight: 800; }
@@ -252,6 +257,8 @@ a { color: var(--accent-2); cursor: pointer; }
 }
 .bought-mini-gem { position: absolute; inset: 0; opacity: 0.9; }
 .bought-mini b { position: relative; }
+/* 已购汇总里白色（浅底）迷你卡用深色数字 */
+.bought-mini-light b { color: #1a1d2a; text-shadow: none; }
 .royal-mini { background: linear-gradient(160deg, #7c5fb8, #5a3f8a); }
 .player-reserved { margin-top: 8px; }
 .reserved-label { font-size: 12px; color: var(--text-dim); }

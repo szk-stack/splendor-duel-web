@@ -52,7 +52,7 @@ export function PlayerPanel({ player, isMe, isCurrent, reservedClickable, onRese
         {groupedBought(player.bought).map(({ bonus, count }) => (
           <span
             key={bonus}
-            className="bought-mini"
+            className={`bought-mini ${bonus === 'white' ? 'bought-mini-light' : ''}`}
             title={`${bonus === 'gray' ? '灰色卡' : `${TOKEN_LABEL[bonus as TokenColor]}奖励卡`} ×${count}`}
           >
             <div className={`bought-mini-gem card-theme-${bonus}`} />
