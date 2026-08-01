@@ -415,6 +415,7 @@ def apply_buy(state, action, library) -> list:
     p.bought.append({
         "id": cid, "bonus": bonus, "bonus_number": card["bonus_number"],
         "points": card["points"], "stacked_on": stacked_on,
+        "crowns": card["crowns"], "capacity": card["capacity"],
     })
     p.points += card["points"]
     p.crowns += card["crowns"]

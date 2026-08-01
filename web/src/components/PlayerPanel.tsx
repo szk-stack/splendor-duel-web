@@ -1,5 +1,6 @@
 /** 玩家面板：得分/皇冠/特权/手牌/已购卡/保留牌。 */
 import type { CardData, PlayerView, TokenColor } from '../types'
+import { CAPACITY_LABEL } from '../api'
 import { chipClass, CrownIcon } from './gem'
 import { CardView } from './Card'
 
@@ -38,10 +39,25 @@ export function PlayerPanel({ player, isMe, isCurrent, reservedClickable, onRese
       </div>
       <div className="player-cards">
         {player.bought.map((e) => (
-          <span key={e.id} className="bought-mini" title={e.stacked_on ? `叠放在 ${e.stacked_on} 上` : undefined}>
+          <span
+            key={e.id}
+            className="bought-mini"
+            title={`${e.id} · 奖励 ${e.bonus ?? '无'} · ${e.points} 分 · ${e.crowns ?? 0} 皇冠` +
+              `${e.capacity ? ` · ${CAPACITY_LABEL[e.capacity] ?? e.capacity}` : ''}` +
+              `${e.stacked_on ? ` · 叠放在 ${e.stacked_on} 上` : ''}`}
+          >
             <div className={`bought-mini-gem card-theme-${e.bonus ?? 'gray'}`} />
             <b>{e.points}</b>
-            {e.stacked_on && <i className="stacked-mark">叠</i>}
+            {(e.crowns ?? 0) > 0 && (
+              <span className="bought-crowns">
+                {Array.from({ length: e.crowns! }).map((_, i) => (
+                  <CrownIcon key={i} size={9} />
+                ))}
+              </span>
+            )}
+            {e.capacity && <i className="bought-cap">{CAPACITY_LABEL[e.capacity] ?? e.capacity}</i>}
+            {e.bonus_number > 1 && <i className="stacked-mark">×{e.bonus_number}</i>}
+            {e.stacked_on && <i className="stacked-mark stacked-on">叠</i>}
           </span>
         ))}
         {player.royal_cards.map((r) => (

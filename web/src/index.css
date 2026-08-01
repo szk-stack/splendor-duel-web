@@ -217,11 +217,18 @@ a { color: var(--accent-2); cursor: pointer; }
 }
 .bought-mini-gem { position: absolute; inset: 0; opacity: 0.9; }
 .bought-mini b { position: relative; }
+.bought-crowns { position: absolute; bottom: 1px; display: flex; gap: 1px; }
+.bought-cap {
+  position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%);
+  font-style: normal; font-size: 8px; background: #00000055;
+  border-radius: 4px; padding: 0 3px; white-space: nowrap;
+}
 .stacked-mark {
   position: absolute; top: 1px; right: 2px;
   font-style: normal; font-size: 9px; background: #f5d97c; color: #4a3a08;
   border-radius: 4px; padding: 0 3px;
 }
+.stacked-on { left: 2px; right: auto; }
 .royal-mini { background: linear-gradient(160deg, #7c5fb8, #5a3f8a); }
 .player-reserved { margin-top: 8px; }
 .reserved-label { font-size: 12px; color: var(--text-dim); }

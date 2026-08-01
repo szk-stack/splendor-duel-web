@@ -30,6 +30,9 @@ export interface BoughtEntry {
   bonus_number: number
   points: number
   stacked_on: string | null
+  /** 展示用（老会话数据可能缺失，选填） */
+  crowns?: number
+  capacity?: string | null
 }
 
 export interface PlayerView {
