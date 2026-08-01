@@ -47,6 +47,8 @@ def _session_for(room: Room, token: str):
 
 async def _broadcast_state(room: Room, events: list, started: bool = False):
     """向双方广播个性化 state（保留牌按视角隐藏；legal_actions 只给轮到的玩家）。"""
+    if room.game is None:
+        return  # 对局已结束/替换（过期 AI 任务可能携带旧事件）
     for slot in (0, 1):
         p = room.players.get(slot)
         if p and p.ws is not None:
@@ -93,7 +95,8 @@ async def ws_endpoint(websocket: WebSocket,
     manager = app.state.manager
     r = manager.get(room)
     session = _session_for(r, token) if r else None
-    if session is None:
+    # 拒绝：无会话、或 AI 会话（AI 永远不需要 WS 连接，防止凭据被劫持冒充）
+    if session is None or session.is_ai:
         await websocket.close(code=protocol.CLOSE_AUTH_FAILED, reason="认证失败")
         return
 
@@ -228,7 +231,23 @@ def _maybe_ai_turn(room: Room):
     if room.game.state.phase == "game_over" or room.game.state.current != 1:
         return
     if not room.ai_busy:
-        asyncio.create_task(ai_player.take_turn(room, lambda ev: _broadcast_state(room, ev)))
+        task = asyncio.create_task(
+            ai_player.take_turn(room, lambda ev: _broadcast_state(room, ev)))
+
+        def _on_done(t):
+            if t.cancelled():
+                return
+            try:
+                ok = t.result()
+            except Exception:
+                ok = False
+            # 任务异常/无法推进且仍轮到 AI → 1s 后重新调度（防永久卡死）
+            if not ok and room.game is not None \
+                    and room.game.state.phase != "game_over" \
+                    and room.game.state.current == 1:
+                asyncio.get_event_loop().call_later(1, lambda: _maybe_ai_turn(room))
+
+        task.add_done_callback(_on_done)
         asyncio.create_task(_ai_keepalive(room))  # AI 思考期间给真人发保活帧
 
 
@@ -252,6 +271,8 @@ async def _handle_rematch(room: Room):
     nicknames = {p.slot: p.nickname for p in room.players.values()}
     room.game = Game(get_library(), seed=room.seed,
                      nicknames=(nicknames[0], nicknames[1]))
+    if room.ai_mode:
+        room.game.state.players[1].is_ai = True
     room.status = "playing"
     room.touch()
     await _broadcast_state(room, [], started=True)

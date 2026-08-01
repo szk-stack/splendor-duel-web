@@ -10,6 +10,7 @@ interface RoomInfo {
   code: string
   token: string
   slot: number
+  ai?: boolean
 }
 
 interface GameStore {
@@ -71,7 +72,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
   create: async (nickname, ai = false) => {
     const r = await createRoom(nickname, ai)
-    const room = { code: r.room_code, token: r.token, slot: r.slot }
+    const room = { code: r.room_code, token: r.token, slot: r.slot, ai }
     // 清掉上一局的残留状态，避免新房间误显示旧对局
     set({ room, nickname, connStatus: 'connecting', gameState: null, legalActions: null,
           lastEvents: [], error: null, banner: null })

@@ -109,7 +109,9 @@ class RoomManager:
         token = secrets.token_urlsafe(24)
         room.players[0] = PlayerSession(slot=0, token=token, nickname=nickname)
         if ai:
-            room.players[1] = PlayerSession(slot=1, token="AI", nickname="AI", is_ai=True)
+            # AI 会话也用随机 token（防止常量凭据被劫持；ws 端还会拒绝 is_ai 会话）
+            room.players[1] = PlayerSession(slot=1, token=secrets.token_urlsafe(24),
+                                            nickname="AI", is_ai=True)
             room.status = "waiting"  # 真人连接后即开局
         self.rooms[code] = room
         return code, token, 0

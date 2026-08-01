@@ -48,6 +48,8 @@ export function LobbyPage() {
       <div className="lobby-status">
         {connStatus === 'connecting' || connStatus === 'closed' ? (
           <span>连接中…</span>
+        ) : room.ai ? (
+          <span>🤖 AI 已就位，对局即将开始…</span>
         ) : (
           <span>等待对手加入（{nickname} 已就位）…</span>
         )}

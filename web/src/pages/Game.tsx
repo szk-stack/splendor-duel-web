@@ -383,7 +383,7 @@ export function GamePage() {
                   case 'concede':
                     return won ? '对手认输' : '你认输了'
                   case 'forfeit':
-                    return '对手离开了，你获胜'
+                    return won ? '对手离开了，你获胜' : '你离开了，对手获胜'
                   default:
                     return ''
                 }

@@ -218,6 +218,99 @@ def test_take_turn_api_failure_falls_back(library, monkeypatch):
     assert room.game.state.current == 0  # 兜底成功
 
 
+def test_parse_action_unclosed_fence():
+    """未闭合的 markdown 代码块不抛 IndexError。"""
+    assert parse_action('```json\n{"kind": "fill_board"}') == {"kind": "fill_board"}
+
+
+def test_random_legal_discard():
+    """弃牌阶段兜底：构造恰好弃 over 个的明细。"""
+    legal = {"phase": "discard", "discard": {"over": 3, "hand": {"white": 2, "red": 5}}}
+    a = random_legal_action(legal)
+    assert a["kind"] == "discard"
+    assert sum(a["colors"].values()) == 3
+    assert a["colors"]["white"] == 2 and a["colors"]["red"] == 1
+
+
+def test_random_legal_force_fill():
+    legal = {"actions": [{"kind": "force_fill"}]}
+    assert random_legal_action(legal) == {"kind": "fill_board"}
+
+
+def test_take_turn_discard_fallback(library, monkeypatch):
+    """AI 手牌超限进入弃牌阶段：模型输出垃圾 → 兜底弃牌成功，对局推进。"""
+    from app.rooms import PlayerSession, Room
+    room = Room(code="DISC", ai_mode=True)
+    room.players[0] = PlayerSession(slot=0, token="t0", nickname="真人", ws=object())
+    room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
+    room.game = Game(library, seed=7)
+    room.game.state.players[1].is_ai = True
+    # 真人先手走一步，轮到 AI；给 AI 塞满手牌（>10 触发弃牌）
+    cell = next(i for i, t in enumerate(room.game.state.board) if t != "gold")
+    room.game.step(0, {"kind": "take_tokens", "cells": [cell]})
+    p = room.game.state.players[1]
+    p.tokens = {"white": 5, "blue": 4, "green": 0, "red": 0, "black": 0,
+                "pearl": 0, "gold": 3}
+    # 模型持续输出垃圾（无法解析）
+    fake = FakeChat(['这不是 JSON'] * 3)
+    monkeypatch.setattr(ai_player.ai_client, "chat", fake)
+    events = run(room)
+    # 兜底弃牌后轮到真人
+    assert room.game.state.current == 0
+    assert room.game.state.players[1].total_tokens() == 10
+
+
+def test_take_turn_stale_game_exits(library, monkeypatch):
+    """对局被替换（重开/退出）后，过期 AI 任务立即退出。"""
+    from app.rooms import PlayerSession, Room
+    room = Room(code="STALE", ai_mode=True)
+    room.players[0] = PlayerSession(slot=0, token="t0", nickname="真人", ws=object())
+    room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
+    room.game = Game(library, seed=7)
+    room.game.state.players[1].is_ai = True
+    cell = next(i for i, t in enumerate(room.game.state.board) if t != "gold")
+    room.game.step(0, {"kind": "take_tokens", "cells": [cell]})
+    old_game = room.game
+    # 对局被替换
+    room.game = Game(library, seed=8)
+    room.game.state.players[1].is_ai = True
+    fake = FakeChat(['{"kind": "take_tokens", "cells": [0]}'])
+    monkeypatch.setattr(ai_player.ai_client, "chat", fake)
+    events = run(room)
+    assert fake.calls == 0  # 未调用模型
+    assert events == []
+    assert old_game.state.current == 1  # 旧对局保持原状
+
+
+def test_normalize_buy_royal_steal_color(library):
+    """皇家牌为偷取能力时，normalize 补全 royal_steal_color。"""
+    from app.ai_player import normalize_action
+    from app.rooms import PlayerSession, Room
+    room = Room(code="R", ai_mode=True)
+    room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
+    room.game = Game(library, seed=3)
+    room.game.state.players[1].is_ai = True
+    room.game.state.current = 1
+    p = room.game.state.players[1]
+    p.tokens = {c: 6 for c in p.tokens}
+    # 构造：AI 已 2 皇冠，买 1 皇冠卡触发皇家牌；皇家池只留偷取牌
+    p.crowns = 2
+    steal_royal = next(r for r, d in library.royal_cards.items()
+                       if d["capacity"] == "steal_opponent_pawn")
+    room.game.state.royal_pool = [steal_royal]
+    room.game.state.players[0].tokens["red"] = 2  # 对手有可偷筹码
+    room.game.state.pyramid[1][0] = "carte_8"  # 1 皇冠
+    legal = room.game.legal_actions(1)
+    buy = next((a for a in legal["actions"] if a["kind"] == "buy"), None)
+    assert buy, "应存在 buy option"
+    opt = buy["options"][0]
+    a = normalize_action({"kind": "buy", "card_id": opt["card"]["id"]}, room.game, legal)
+    assert a["royal_choice"] == steal_royal
+    assert a.get("royal_steal_color") == "red"
+    events = room.game.step(1, a)  # 引擎应接受
+    assert any(e["type"] == "royal_taken" for e in events)
+
+
 def test_take_turn_not_ai_turn_returns(library, monkeypatch):
     """不是 AI 回合（轮到真人）→ 直接返回不调用模型。"""
     room = make_ai_room(library)

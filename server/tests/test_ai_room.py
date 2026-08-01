@@ -94,3 +94,37 @@ def test_ai_room_join_rejected(client):
     data = r.json()
     resp = client.post(f"/api/rooms/{data['room_code']}/join", json={"nickname": "路人"})
     assert resp.status_code == 409
+
+
+def test_ai_token_not_constant(client):
+    """AI 会话 token 必须是随机值（不可用常量 "AI" 劫持）。"""
+    r = client.post("/api/rooms", json={"nickname": "真人", "ai": True})
+    data = r.json()
+    # 尝试用常量 "AI" 连接 → 认证失败关闭
+    with pytest.raises(Exception):
+        with client.websocket_connect(f"/ws?room={data['room_code']}&token=AI"):
+            pass
+
+
+def test_ai_room_rematch_keeps_ai_flag(client, monkeypatch):
+    """AI 房间再来一局后 players[1].is_ai 保持 True。"""
+    from app import ai_player
+    fake = FakeChat('{"kind": "take_tokens", "cells": [0]}')
+    monkeypatch.setattr(ai_player.ai_client, "chat", fake)
+
+    r = client.post("/api/rooms", json={"nickname": "真人", "ai": True})
+    data = r.json()
+    with client.websocket_connect(
+            f"/ws?room={data['room_code']}&token={data['token']}") as ws:
+        recv_until(ws, "hello")
+        st = recv_until(ws, "state")
+        assert st["state"]["players"][1]["is_ai"] is True
+        # 真人认输结束对局
+        ws.send_json({"type": "action", "action": {"kind": "concede"}})
+        st2 = recv_until(ws, "state")
+        assert st2["state"]["winner"] == 1
+        # 再来一局
+        ws.send_json({"type": "rematch"})
+        st3 = recv_until(ws, "state")
+        assert st3["started"] is True
+        assert st3["state"]["players"][1]["is_ai"] is True

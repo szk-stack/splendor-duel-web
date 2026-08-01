@@ -47,6 +47,10 @@ def render_board(board: list) -> str:
 
 def build_messages(state_dict: dict, legal_actions: dict, error: str = None) -> list:
     """组装提示词：规则 + ASCII 棋盘 + 当前局势 + 合法行动（+ 上次被拒原因）。"""
+    hint = ""
+    if legal_actions.get("discard"):
+        hint = ("\n\n当前处于【弃牌阶段】：必须输出 {\"kind\": \"discard\", \"colors\": {\"颜色名\": 数量}}，"
+                "各色数量合计必须恰好等于需弃数量，颜色名为 white/blue/green/red/black/pearl/gold。")
     user = (
         "棋盘（索引为 0-24，行主序：0-4 第一行、5-9 第二行…；"
         "拿筹码必须选同一行/列/斜线上连续相邻的格，金=金币不可拿）：\n"
@@ -55,6 +59,7 @@ def build_messages(state_dict: dict, legal_actions: dict, error: str = None) -> 
         + "\n\n你可执行的合法行动（JSON）：\n"
         + json.dumps(legal_actions, ensure_ascii=False)
         + ("\n\n你上次提交的行动被拒绝：" + error if error else "")
+        + hint
         + "\n\n请选择一个行动，只输出一个 JSON 对象（如 {\"kind\": \"take_tokens\", \"cells\": [0, 1]}），"
           "不要任何其他文字。"
     )
@@ -66,7 +71,9 @@ def parse_action(text: str) -> dict:
     """从模型回复中提取 action JSON（容忍 markdown 代码块与多余文字）。"""
     t = text.strip()
     if t.startswith("```"):
-        t = t.split("```")[1]
+        parts = t.split("```")
+        # 完整代码块取第 1 段；未闭合（只有开头）取剩余部分
+        t = parts[1] if len(parts) >= 2 else ""
         if t.lstrip().startswith("json"):
             t = t.lstrip()[4:]
     start, end = t.find("{"), t.rfind("}")
@@ -76,11 +83,33 @@ def parse_action(text: str) -> dict:
 
 
 def random_legal_action(legal_actions: dict) -> dict:
-    """兜底：从合法行动中构造一个可执行的随机行动（优先简单行动）。"""
+    """兜底：从合法行动中构造一个可执行的随机行动（优先简单行动）。
+
+    覆盖所有阶段：强制行动（拿/保留/补充/特权）、弃牌阶段、强制补充棋盘。
+    """
+    # 弃牌阶段：构造恰好弃 over 个的明细（跨颜色分摊）
+    discard = legal_actions.get("discard")
+    if discard:
+        colors = {}
+        over = discard["over"]
+        for c, n in (discard.get("hand") or {}).items():
+            if over <= 0:
+                break
+            take = min(over, n)
+            if take:
+                colors[c] = take
+            over -= take
+        if sum(colors.values()) == discard["over"]:
+            return {"kind": "discard", "colors": colors}
+        return None
+
     actions = legal_actions.get("actions") or []
     by_kind = {}
     for a in actions:
         by_kind.setdefault(a["kind"], []).append(a)
+    # 强制补充棋盘（无任何强制行动可行时的唯一出路）
+    if "force_fill" in by_kind:
+        return {"kind": "fill_board"}
     for kind in ("take_tokens", "reserve", "use_privilege", "fill_board"):
         if kind not in by_kind:
             continue
@@ -204,7 +233,18 @@ def normalize_action(action: dict, game, legal_actions: dict) -> dict:
         if opt.get("royal_required"):
             pool = game.state.royal_pool
             if pool:
-                result["royal_choice"] = pool[0]
+                # 优先选非偷取能力的皇家牌（偷取需额外指定颜色，模型容易漏）
+                royal = next(
+                    (r for r in pool
+                     if game.state._library.royal(r)["capacity"] != "steal_opponent_pawn"),
+                    pool[0])
+                result["royal_choice"] = royal
+                if game.state._library.royal(royal)["capacity"] == "steal_opponent_pawn":
+                    opp = game.state.opponent(1)
+                    stealable = [c for c in ("white", "blue", "green", "red", "black", "pearl")
+                                 if opp.tokens.get(c, 0) > 0]
+                    if stealable:
+                        result["royal_steal_color"] = stealable[0]
         if opt["card"]["capacity"] == "steal_opponent_pawn":
             opp = game.state.opponent(1)
             stealable = [c for c in ("white", "blue", "green", "red", "black", "pearl")
@@ -234,49 +274,65 @@ async def ask_action(state_dict: dict, legal_actions: dict, error: str = None):
         return None, f"解析失败: {e}"
 
 
-async def take_turn(room, broadcast) -> None:
+async def take_turn(room, broadcast) -> bool:
     """AI 回合主循环：持续行动（含 replay/额外回合）直到轮到真人或对局结束。
 
     非法行动带错误信息回传模型重试（MAX_RETRY 次），耗尽后随机合法行动兜底。
+    返回 True=正常完成；False=异常/无法推进（调用方决定是否重调度）。
     room.ai_busy 防止重复启动；真人断线时由调用方（main.py）决定不触发。
     """
     if room.ai_busy or room.game is None:
-        return
+        return True
     room.ai_busy = True
     try:
-        while room.game is not None and room.game.state.phase != "game_over" \
-                and room.game.state.current == 1:
+        while True:
             game = room.game
-            legal = game.legal_actions(1)
-            events = None
-            error = None
-            for attempt in range(MAX_RETRY + 1):
-                action, error = await ask_action(game.state_dict(1), legal, error)
-                if action is None:
-                    log.warning("AI 第 %d 次尝试失败: %s", attempt + 1, error)
-                    continue  # API/解析失败：带原因重试
-                action = normalize_action(action, game, legal)
-                if action is None:
-                    error = "行动无法规范化（不在合法范围内）"
-                    log.warning("AI 行动无法规范化: %s", error)
-                    continue
-                try:
-                    events = game.step(1, action)
-                    log.info("AI 行动(第%d次尝试): %s", attempt + 1, json.dumps(action, ensure_ascii=False))
-                    break
-                except InvalidAction as e:
-                    error = f"{e.code}: {e.message}"
-                    log.warning("AI 行动被拒: %s <- %s", error, json.dumps(action, ensure_ascii=False))
-            if events is None:
-                # 重试耗尽：随机合法行动兜底
-                log.warning("AI 重试耗尽，随机兜底")
-                action = random_legal_action(legal)
-                if action is None:
-                    return
-                try:
-                    events = game.step(1, action)
-                except InvalidAction:
-                    return
+            if game is None or game.state.phase == "game_over" \
+                    or game.state.current != 1:
+                return True
+            if room.game is not game:
+                # 对局已被替换（重开/退出），放弃过期任务
+                log.warning("AI 任务检测到对局已替换，退出")
+                return True
+            try:
+                legal = game.legal_actions(1)
+                events = None
+                error = None
+                for attempt in range(MAX_RETRY + 1):
+                    action, error = await ask_action(game.state_dict(1), legal, error)
+                    if action is None:
+                        log.warning("AI 第 %d 次尝试失败: %s", attempt + 1, error)
+                        continue  # API/解析失败：带原因重试
+                    action = normalize_action(action, game, legal)
+                    if action is None:
+                        error = "行动无法规范化（不在合法范围内）"
+                        log.warning("AI 行动无法规范化: %s", error)
+                        continue
+                    try:
+                        events = game.step(1, action)
+                        log.info("AI 行动(第%d次尝试): %s",
+                                 attempt + 1, json.dumps(action, ensure_ascii=False))
+                        break
+                    except InvalidAction as e:
+                        error = f"{e.code}: {e.message}"
+                        log.warning("AI 行动被拒: %s <- %s", error,
+                                    json.dumps(action, ensure_ascii=False))
+                if events is None:
+                    # 重试耗尽：随机合法行动兜底
+                    log.warning("AI 重试耗尽，随机兜底")
+                    action = random_legal_action(legal)
+                    if action is None:
+                        log.error("AI 兜底失败：无合法行动可构造（阶段=%s）",
+                                  game.state.phase)
+                        return False
+                    try:
+                        events = game.step(1, action)
+                    except InvalidAction:
+                        return False
+            except Exception:
+                log.exception("AI 回合异常")
+                return False
             await broadcast(events)
     finally:
         room.ai_busy = False
+    return True
