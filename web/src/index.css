@@ -175,17 +175,22 @@ a { color: var(--accent-2); cursor: pointer; }
   transform: translateX(-50%);
   display: flex; flex-direction: column; align-items: center;
   justify-content: flex-start;
-  height: 44px; /* 容纳 宝石(24) / 空轮廓+无(40) / 宝石+百搭标签(42) */
+  height: 26px; /* 只容纳宝石图案（标签在下方词条区） */
 }
 .card-gems { display: flex; gap: 2px; align-items: center; }
 .card-gem-empty {
+  position: relative;
   display: flex; flex-direction: column; align-items: center;
   font-size: 10px; color: #e8e9efaa; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+/* "无"字悬在轮廓下方，不占容器高度（保持与彩色宝石对齐） */
+.card-gem-empty > span {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
 }
 /* 宝石下方词条区：宝石盒底到费用区之间，单条垂直居中，多条堆叠居中 */
 .card-entries {
   position: absolute;
-  top: calc(22% + 46px);
+  top: calc(22% + 28px);
   bottom: 26px;
   left: 0; right: 0;
   display: flex; flex-direction: column; align-items: center;
