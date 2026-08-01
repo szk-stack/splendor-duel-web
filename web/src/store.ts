@@ -44,6 +44,20 @@ wsClient.on('player_left' as never, () => useGameStore.setState({ banner: '对�
 wsClient.on('opponent_reconnected' as never, () => useGameStore.setState({ banner: '对手已重连' }))
 wsClient.on('open' as never, () => useGameStore.setState({ connStatus: 'open', banner: null }))
 wsClient.on('close' as never, () => useGameStore.setState({ connStatus: 'closed' }))
+// 认证失败（房间不存在/已失效/后端重启）：清掉僵尸会话，Guard 会自动跳回首页
+wsClient.on('auth_failed' as never, () => {
+  sessionStorage.removeItem('splendor_room')
+  sessionStorage.removeItem('splendor_nickname')
+  useGameStore.setState({
+    room: null,
+    gameState: null,
+    legalActions: null,
+    lastEvents: [],
+    connStatus: 'closed',
+    banner: null,
+    error: '房间不存在或已失效，请重新创建/加入房间',
+  })
+})
 
 export const useGameStore = create<GameStore>((set) => ({
   room: null,

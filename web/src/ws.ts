@@ -69,10 +69,17 @@ export class WsClient {
       }
     }
 
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       this.stopTimers()
       this.status = 'closed'
       this.emit({ type: 'close' } as never)
+      // 4001 = 认证失败（房间不存在/已失效/后端重启）：
+      // 重试没有意义，停止重连并通知上层清理会话
+      if (ev.code === 4001) {
+        this.closedByUser = true
+        this.emit({ type: 'auth_failed' } as never)
+        return
+      }
       if (!this.closedByUser) this.scheduleReconnect()
     }
 

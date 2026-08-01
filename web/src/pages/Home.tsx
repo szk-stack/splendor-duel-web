@@ -6,6 +6,7 @@ import { useGameStore } from '../store'
 export function HomePage() {
   const nav = useNavigate()
   const { create, join } = useGameStore()
+  const sessionError = useGameStore((s) => s.error)
   const [nickname, setNickname] = useState('')
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -69,6 +70,7 @@ export function HomePage() {
           加入房间
         </button>
 
+        {sessionError && <div className="banner banner-error">{sessionError}</div>}
         {error && <div className="banner banner-error">{error}</div>}
       </div>
     </div>
