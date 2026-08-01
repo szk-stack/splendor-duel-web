@@ -49,7 +49,7 @@ class PlayerState:
             "points": self.points,
             "crowns": self.crowns,
             "bought": self.bought,
-            "royal_cards": list(self.royal_cards),
+            "royal_cards": [_royal_dict(library.royal(c)) for c in self.royal_cards],
             # 保留牌：本人可见卡牌明细，对手只见数量
             "reserved": [_card_dict(library.card(cid)) for cid in self.reserved] if is_owner else [],
             "reserved_count": len(self.reserved),

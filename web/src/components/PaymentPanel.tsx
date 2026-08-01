@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react'
 import type { BoughtEntry, CardData, GameState, PlayerView, TokenColor } from '../types'
 import { GEM_COLORS } from '../types'
+import { CAPACITY_LABEL, TOKEN_LABEL } from '../api'
 import { defaultPayment, effectiveCost, paymentValid } from '../gameLogic'
 import { chipClass } from './gem'
 
@@ -30,6 +31,7 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
   const [jokerTarget, setJokerTarget] = useState<string>(stackTargets?.[0] ?? '')
   const [stealColor, setStealColor] = useState<string>('')
   const [royalChoice, setRoyalChoice] = useState<string>(gameState.royal_pool[0]?.id ?? '')
+  const [royalStealColor, setRoyalStealColor] = useState<string>('')
   const [takeCell] = useState<string>(() => {
     if (card.capacity !== 'take_on_board' || card.bonus === null) return ''
     const cell = gameState.board.findIndex((t) => t === card.bonus)
@@ -67,43 +69,64 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
     if (card.bonus === 'joker') payload.joker_target = jokerTarget
     if (card.capacity === 'steal_opponent_pawn' && stealColor) payload.steal_color = stealColor
     if (card.capacity === 'take_on_board' && takeCell) payload.take_cell = Number(takeCell)
-    if (royalRequired) payload.royal_choice = royalChoice
+    if (royalRequired) {
+      payload.royal_choice = royalChoice
+      if (selectedRoyal?.capacity === 'steal_opponent_pawn' && royalStealColor) {
+        payload.royal_steal_color = royalStealColor
+      }
+    }
     onConfirm(payload)
   }
+
+  // 免费卡：全部费用已被奖励减免
+  const isFree = ([...GEM_COLORS, 'pearl'] as TokenColor[]).every((c) => effCost[c] === 0)
+  // 选中的皇家牌详情（用于偷取选择）
+  const selectedRoyal = gameState.royal_pool.find((r) => r.id === royalChoice)
+  const jokerTargetEntry = me.bought.find((e) => e.id === jokerTarget)
 
   return (
     <div className="payment-panel">
       <h4>购买 {card.id}</h4>
-      {([...GEM_COLORS, 'pearl'] as TokenColor[]).map((color) =>
-        effCost[color] > 0 || (pay[color]?.tokens ?? 0) > 0 || (pay[color]?.gold ?? 0) > 0 ? (
-          <div key={color} className="pay-row">
-            <span className={chipClass(color)} />
-            <span className="pay-need">需 {effCost[color]}</span>
-            <div className="pay-steppers">
-              <span>
-                筹码 <button aria-label={`减少${color}筹码`} onClick={() => setColor(color, 'tokens', -1)}>−</button>
-                <b>{pay[color]?.tokens ?? 0}</b>
-                <button aria-label={`增加${color}筹码`} onClick={() => setColor(color, 'tokens', 1)}>+</button>
-              </span>
-              <span>
-                金币 <button aria-label={`减少${color}金币`} onClick={() => setColor(color, 'gold', -1)}>−</button>
-                <b>{pay[color]?.gold ?? 0}</b>
-                <button aria-label={`增加${color}金币`} onClick={() => setColor(color, 'gold', 1)}>+</button>
-              </span>
+      {isFree ? (
+        <div className="pay-free">🎉 免费！</div>
+      ) : (
+        ([...GEM_COLORS, 'pearl'] as TokenColor[]).map((color) =>
+          effCost[color] > 0 || (pay[color]?.tokens ?? 0) > 0 || (pay[color]?.gold ?? 0) > 0 ? (
+            <div key={color} className="pay-row">
+              <span className={chipClass(color)} />
+              <span className="pay-need">需 {effCost[color]}</span>
+              <div className="pay-steppers">
+                <span>
+                  筹码 <button aria-label={`减少${color}筹码`} onClick={() => setColor(color, 'tokens', -1)}>−</button>
+                  <b>{pay[color]?.tokens ?? 0}</b>
+                  <button aria-label={`增加${color}筹码`} onClick={() => setColor(color, 'tokens', 1)}>+</button>
+                </span>
+                <span>
+                  金币 <button aria-label={`减少${color}金币`} onClick={() => setColor(color, 'gold', -1)}>−</button>
+                  <b>{pay[color]?.gold ?? 0}</b>
+                  <button aria-label={`增加${color}金币`} onClick={() => setColor(color, 'gold', 1)}>+</button>
+                </span>
+              </div>
             </div>
-          </div>
-        ) : null,
+          ) : null,
+        )
       )}
-      <div className="pay-gold-sum">金币使用合计：{goldUsed} / {me.tokens.gold}</div>
+      {!isFree && <div className="pay-gold-sum">金币使用合计：{goldUsed} / {me.tokens.gold}</div>}
       {invalidReason && <div className="banner banner-error">{invalidReason}</div>}
 
       {card.bonus === 'joker' && stackTargets && (
         <label className="pay-option">
           叠放到：
+          <span className={chipClass(jokerTargetEntry?.bonus ?? 'red')} />
           <select value={jokerTarget} onChange={(e) => setJokerTarget(e.target.value)}>
-            {stackTargets.map((id) => (
-              <option key={id} value={id}>{id}</option>
-            ))}
+            {stackTargets.map((id) => {
+              const entry = me.bought.find((e) => e.id === id)
+              return (
+                <option key={id} value={id}>
+                  {entry?.bonus ? `${TOKEN_LABEL[entry.bonus]}奖励卡` : id}
+                </option>
+              )
+            })}
           </select>
         </label>
       )}
@@ -127,16 +150,35 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
       )}
 
       {royalRequired && (
-        <label className="pay-option">
-          获得皇家牌：
-          <select value={royalChoice} onChange={(e) => setRoyalChoice(e.target.value)}>
-            {gameState.royal_pool.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.id}（{r.points} 分{r.capacity ? `，${r.capacity}` : ''}）
-              </option>
-            ))}
-          </select>
-        </label>
+        <>
+          <div className="banner banner-turn royal-hint">
+            🎉 你达到了 {me.crowns + card.crowns} 个皇冠，可获得一张皇家牌
+          </div>
+          <label className="pay-option">
+            获得皇家牌：
+            <select value={royalChoice} onChange={(e) => setRoyalChoice(e.target.value)}>
+              {gameState.royal_pool.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.points} 分 · {r.capacity ? (CAPACITY_LABEL[r.capacity] ?? r.capacity) : '无能力'}
+                </option>
+              ))}
+            </select>
+          </label>
+          {selectedRoyal?.capacity === 'steal_opponent_pawn' && stealable.length > 0 && (
+            <label className="pay-option">
+              皇家牌偷取颜色：
+              <select
+                value={royalStealColor}
+                onChange={(e) => setRoyalStealColor(e.target.value)}
+              >
+                <option value="">选择要偷的颜色</option>
+                {stealable.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </>
       )}
 
       <div className="pay-actions">

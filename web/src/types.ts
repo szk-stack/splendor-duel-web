@@ -43,7 +43,7 @@ export interface PlayerView {
   points: number
   crowns: number
   bought: BoughtEntry[]
-  royal_cards: string[]
+  royal_cards: RoyalData[]
   reserved: CardData[]
   reserved_count: number
 }

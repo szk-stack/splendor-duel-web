@@ -77,6 +77,7 @@ export function GamePage() {
     if (mode === 'privilege' && privilegeLegal) {
       sendAction({ kind: 'use_privilege', cell })
       setMode('none')
+      setBusy(true)  // 锁住按钮直到服务端广播（特权每回合限 1 次）
       return
     }
     if (mode === 'take' && takeLegal) {
@@ -199,6 +200,7 @@ export function GamePage() {
     <div className="page game-page">
       <div className="game-toolbar">
         <span className="room-tag">房间 {room?.code}</span>
+        <span className="win-hint" title="达成任一条件即获胜">🎯 胜利：20 分 / 10 皇冠 / 同色 10 分</span>
         <span className="toolbar-spacer" />
         {gameState.phase !== 'game_over' && (
           <button
@@ -347,12 +349,23 @@ export function GamePage() {
           <div className="modal victory-modal">
             <h2>{gameState.winner === me.slot ? '🎉 你赢了！' : '😔 你输了'}</h2>
             <p>
-              {gameState.win_reason === 'points' && '声望分达到 20 分'}
-              {gameState.win_reason === 'crowns' && '收集到 10 个皇冠'}
-              {gameState.win_reason?.startsWith('same_color') && '同色卡牌声望分达到 10 分'}
-              {gameState.win_reason === 'concede' &&
-                (gameState.winner === me.slot ? '对手认输' : '你认输了')}
-              {gameState.win_reason === 'forfeit' && '对手离开了，你获胜'}
+              {(() => {
+                const won = gameState.winner === me.slot
+                switch (gameState.win_reason) {
+                  case 'points':
+                    return won ? '你率先达到 20 分' : '对手率先达到 20 分'
+                  case 'crowns':
+                    return won ? '你率先收集到 10 个皇冠' : '对手率先收集到 10 个皇冠'
+                  case 'same_color':
+                    return won ? '你率先达成同色卡牌 10 分' : '对手率先达成同色卡牌 10 分'
+                  case 'concede':
+                    return won ? '对手认输' : '你认输了'
+                  case 'forfeit':
+                    return '对手离开了，你获胜'
+                  default:
+                    return ''
+                }
+              })()}
             </p>
             {gameState.win_reason === 'forfeit' && (
               <p className="muted">房间还在，把房间码 {room?.code} 告诉朋友即可加入新对局</p>

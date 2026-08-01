@@ -279,6 +279,13 @@ def validate_buy(state, action) -> None:
         rc = action.get("royal_choice")
         if rc not in state.royal_pool:
             _err("ILLEGAL_ACTION", "皇家牌选择非法")
+        # 皇家牌带偷取能力且对手有可偷筹码时，必须指定偷取颜色
+        royal = state._library.royal(rc)
+        if royal["capacity"] == "steal_opponent_pawn":
+            opp = state.opponent(p.slot)
+            stealable = [c for c in GEM_COLORS + ["pearl"] if opp.tokens[c] > 0]
+            if stealable and action.get("royal_steal_color") not in stealable:
+                _err("ILLEGAL_ACTION", "皇家牌偷取颜色非法或对手没有该筹码")
     elif action.get("royal_choice") is not None:
         _err("ILLEGAL_ACTION", "当前不满足拿取皇家牌条件")
 

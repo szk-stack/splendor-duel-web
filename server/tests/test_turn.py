@@ -40,6 +40,32 @@ def give_hand(p, **tokens):
         p.tokens[c] += n
 
 
+def test_privilege_limited_to_one_per_turn(game):
+    """特权每回合最多用 1 次（+1 次补充棋盘 = 2 个可选行动）。"""
+    s = game.state
+    # 0 号先走，轮到 1 号（有 1 起始特权）
+    game.step(0, {"kind": "take_tokens", "cells": [first_non_gold(game)]})
+    p1 = s.players[1]
+    p1.privileges = 3  # 多给几个，验证仍只限 1 次
+    s.privilege_pool = 0
+    cell = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
+    game.step(1, {"kind": "use_privilege", "cell": cell})
+    assert p1.privileges == 2
+    # 同回合第二次被拒
+    cell2 = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
+    with pytest.raises(InvalidAction) as e:
+        game.step(1, {"kind": "use_privilege", "cell": cell2})
+    assert e.value.code == "PRIVILEGE_USED"
+    # 下回合恢复
+    game.step(1, {"kind": "take_tokens", "cells": [cell2]})
+    take = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
+    game.step(0, {"kind": "take_tokens", "cells": [take]})
+    assert s.current == 1
+    cell3 = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
+    game.step(1, {"kind": "use_privilege", "cell": cell3})
+    assert p1.privileges == 1
+
+
 def test_use_privilege(game):
     s = game.state
     # 先手没特权不能使用
