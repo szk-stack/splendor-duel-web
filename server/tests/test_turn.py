@@ -46,15 +46,15 @@ def test_privilege_limited_to_one_per_turn(game):
     # 0 号先走，轮到 1 号（有 1 起始特权）
     game.step(0, {"kind": "take_tokens", "cells": [first_non_gold(game)]})
     p1 = s.players[1]
-    p1.privileges = 3  # 多给几个，验证仍只限 1 次
+    p1.privileges = 3  # 多给几个，验证仍只限 1 次行动
     s.privilege_pool = 0
     cell = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
-    game.step(1, {"kind": "use_privilege", "cell": cell})
+    game.step(1, {"kind": "use_privilege", "cells": [cell]})
     assert p1.privileges == 2
-    # 同回合第二次被拒
+    # 同回合第二次行动被拒
     cell2 = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
     with pytest.raises(InvalidAction) as e:
-        game.step(1, {"kind": "use_privilege", "cell": cell2})
+        game.step(1, {"kind": "use_privilege", "cells": [cell2]})
     assert e.value.code == "PRIVILEGE_USED"
     # 下回合恢复
     game.step(1, {"kind": "take_tokens", "cells": [cell2]})
@@ -62,22 +62,48 @@ def test_privilege_limited_to_one_per_turn(game):
     game.step(0, {"kind": "take_tokens", "cells": [take]})
     assert s.current == 1
     cell3 = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
-    game.step(1, {"kind": "use_privilege", "cell": cell3})
+    game.step(1, {"kind": "use_privilege", "cells": [cell3]})
     assert p1.privileges == 1
+
+
+def test_privilege_multi_spend(game):
+    """一次使用特权可放回多个（1~3），拿取对应数量筹码。"""
+    s = game.state
+    game.step(0, {"kind": "take_tokens", "cells": [first_non_gold(game)]})
+    p1 = s.players[1]
+    p1.privileges = 3
+    s.privilege_pool = 0
+    cells = [i for i, t in enumerate(s.board) if t not in (None, "gold")][:3]
+    game.step(1, {"kind": "use_privilege", "cells": cells})
+    assert p1.privileges == 0
+    assert s.privilege_pool == 3
+    assert p1.total_tokens() == 3
+    assert all(s.board[c] is None for c in cells)
+    # 超过持有数被拒（需先结束本回合，避免先被 PRIVILEGE_USED 拦截）
+    take = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
+    game.step(1, {"kind": "take_tokens", "cells": [take]})
+    take2 = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
+    game.step(0, {"kind": "take_tokens", "cells": [take2]})
+    assert s.current == 1
+    p1.privileges = 1
+    cells2 = [i for i, t in enumerate(s.board) if t not in (None, "gold")][:2]
+    with pytest.raises(InvalidAction) as e:
+        game.step(1, {"kind": "use_privilege", "cells": cells2})
+    assert e.value.code == "ILLEGAL_ACTION"
 
 
 def test_use_privilege(game):
     s = game.state
     # 先手没特权不能使用
     with pytest.raises(InvalidAction) as e:
-        game.step(0, {"kind": "use_privilege", "cell": first_non_gold(game)})
+        game.step(0, {"kind": "use_privilege", "cells": [first_non_gold(game)]})
     assert e.value.code == "NO_PRIVILEGE"
     # 换后手（有 1 特权）使用
     game.step(0, {"kind": "take_tokens", "cells": [first_non_gold(game)]})
     # 选一个仍占位的非金币格（刚才 0 号拿走的格已空）
     cell = next(i for i, t in enumerate(s.board) if t not in (None, "gold"))
     color = s.board[cell]
-    game.step(1, {"kind": "use_privilege", "cell": cell})
+    game.step(1, {"kind": "use_privilege", "cells": [cell]})
     p1 = s.players[1]
     assert p1.privileges == 0
     assert p1.tokens[color] == 1
@@ -86,7 +112,7 @@ def test_use_privilege(game):
     assert s.current == 1
     # 特权已用，再用被拒
     with pytest.raises(InvalidAction):
-        game.step(1, {"kind": "use_privilege", "cell": cell})
+        game.step(1, {"kind": "use_privilege", "cells": [cell]})
 
 
 def test_fill_board_gives_opponent_privilege(game):

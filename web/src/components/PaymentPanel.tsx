@@ -137,7 +137,7 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
           <select value={stealColor} onChange={(e) => setStealColor(e.target.value)}>
             <option value="">不偷（对手无可偷时自动忽略）</option>
             {stealable.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>{TOKEN_LABEL[c as TokenColor]}</option>
             ))}
           </select>
         </label>
@@ -173,7 +173,7 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
               >
                 <option value="">选择要偷的颜色</option>
                 {stealable.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>{TOKEN_LABEL[c as TokenColor]}</option>
                 ))}
               </select>
             </label>

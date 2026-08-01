@@ -127,6 +127,7 @@ def _check_phase(state, phase):
 
 
 def validate_use_privilege(state, action) -> None:
+    """使用特权：放回 1~3 个特权，从棋盘拿取对应数量的宝石/珍珠。"""
     _check_phase(state, "optional")
     p = state.current_player()
     if p.privileges <= 0:
@@ -135,11 +136,16 @@ def validate_use_privilege(state, action) -> None:
         _err("PRIVILEGE_USED", "本回合已使用过特权")
     if state.fill_used:
         _err("ORDER_VIOLATION", "补充棋盘后不能再使用特权（顺序：先特权后补充）")
-    cell = action.get("cell")
-    if not isinstance(cell, int) or not 0 <= cell < 25:
-        _err("ILLEGAL_ACTION", "特权取筹码格位非法")
-    if state.board[cell] is None or state.board[cell] == "gold":
-        _err("ILLEGAL_ACTION", "该格无筹码或为金币")
+    cells = action.get("cells")
+    if not isinstance(cells, list) or not 1 <= len(cells) <= min(p.privileges, 3):
+        _err("ILLEGAL_ACTION", f"使用特权需指定 1~{min(p.privileges, 3)} 个筹码格位")
+    if len(set(cells)) != len(cells):
+        _err("ILLEGAL_ACTION", "格子重复")
+    for c in cells:
+        if not isinstance(c, int) or not 0 <= c < 25:
+            _err("ILLEGAL_ACTION", "特权取筹码格位非法")
+        if state.board[c] is None or state.board[c] == "gold":
+            _err("ILLEGAL_ACTION", "该格无筹码或为金币")
 
 
 def validate_fill_board(state, action) -> None:
@@ -321,14 +327,15 @@ def validate_discard(state, action) -> None:
 
 def apply_use_privilege(state, action) -> list:
     p = state.current_player()
-    cell = action["cell"]
-    color = state.board[cell]
-    state.board[cell] = None
-    _add_token_to_hand(state, p.slot, color)
-    p.privileges -= 1
-    state.privilege_pool += 1  # 放回图板上方
+    cells = action["cells"]
+    for c in cells:
+        color = state.board[c]
+        state.board[c] = None
+        _add_token_to_hand(state, p.slot, color)
+        p.privileges -= 1
+        state.privilege_pool += 1  # 放回图板上方
     state.privilege_used = True
-    return [{"type": "tokens_taken", "cells": [cell], "player": p.slot}]
+    return [{"type": "tokens_taken", "cells": cells, "player": p.slot}]
 
 
 def apply_fill_board(state, action, rng) -> list:

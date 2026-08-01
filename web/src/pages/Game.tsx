@@ -75,9 +75,13 @@ export function GamePage() {
       return
     }
     if (mode === 'privilege' && privilegeLegal) {
-      sendAction({ kind: 'use_privilege', cell })
-      setMode('none')
-      setBusy(true)  // 锁住按钮直到服务端广播（特权每回合限 1 次）
+      // 多选：放回 1~3 个特权换对应数量筹码（无成线限制）
+      const max = Math.min(me?.privileges ?? 1, 3)
+      setSelCells((prev) => {
+        if (prev.includes(cell)) return prev.filter((c) => c !== cell)
+        if (prev.length >= max) return prev
+        return [...prev, cell]
+      })
       return
     }
     if (mode === 'take' && takeLegal) {
@@ -125,6 +129,11 @@ export function GamePage() {
   const submitTake = () => {
     sendAction({ kind: 'take_tokens', cells: selCells })
     setBusy(true)
+  }
+
+  const submitPrivilege = () => {
+    sendAction({ kind: 'use_privilege', cells: selCells })
+    setBusy(true)  // 锁住按钮直到服务端广播（特权每回合限 1 次行动）
   }
 
   const submitBuy = (payload: Record<string, unknown>) => {
@@ -294,13 +303,19 @@ export function GamePage() {
           legal={legal}
           busy={busy}
           selectionReady={
-            (mode === 'take' && selCells.length > 0) ||
+            ((mode === 'take' || mode === 'privilege') && selCells.length > 0) ||
             (mode === 'buy' && selCard !== null) ||
             mode === 'none' ||
             false
           }
           onMode={setMode}
-          onConfirm={mode === 'take' ? submitTake : () => setBusy(false)}
+          onConfirm={
+            mode === 'take'
+              ? submitTake
+              : mode === 'privilege'
+                ? submitPrivilege
+                : () => setBusy(false)
+          }
           onCancel={() => {
             setMode('none')
             setSelCells([])
@@ -316,6 +331,12 @@ export function GamePage() {
 
       {pendingReserve && (
         <div className="banner banner-turn">已选要保留的牌 — 请点击棋盘上的【金币】完成保留</div>
+      )}
+
+      {mode === 'privilege' && myTurn && (
+        <div className="banner banner-turn">
+          使用特权：点击选择要拿取的筹码（已选 {selCells.length}/{Math.min(me.privileges, 3)}），点确认
+        </div>
       )}
 
       {gameState.phase === 'discard' && myTurn && legalActions?.discard && (
