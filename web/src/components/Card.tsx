@@ -57,18 +57,23 @@ export function CardView({ card, selected, highlight, dimmed, onClick, showCost 
             <span>无</span>
           </span>
         ) : (
-          <>
-            {/* 双奖励卡直接显示两个宝石图案 */}
-            <span className="card-gems">
-              {Array.from({ length: card.bonus_number }).map((_, i) => (
-                <GemIcon key={i} color={card.bonus} size={24} />
-              ))}
-            </span>
-            {card.bonus === 'joker' && <span className="card-joker-tag">百搭</span>}
-          </>
+          /* 双奖励卡直接显示两个宝石图案 */
+          <span className="card-gems">
+            {Array.from({ length: card.bonus_number }).map((_, i) => (
+              <GemIcon key={i} color={card.bonus} size={24} />
+            ))}
+          </span>
         )}
       </div>
-      {card.capacity && <div className="card-capacity">{CAPACITY_LABEL[card.capacity] ?? card.capacity}</div>}
+      {/* 宝石下方词条区：百搭标签 / 能力标签，单条时垂直居中 */}
+      {(card.bonus === 'joker' || card.capacity) && (
+        <div className="card-entries">
+          {card.bonus === 'joker' && <span className="card-joker-tag">百搭</span>}
+          {card.capacity && (
+            <div className="card-capacity">{CAPACITY_LABEL[card.capacity] ?? card.capacity}</div>
+          )}
+        </div>
+      )}
       {showCost && (
         <div className="card-cost">
           {costEntries.map(([color, n]) => (

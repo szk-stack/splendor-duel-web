@@ -182,9 +182,19 @@ a { color: var(--accent-2); cursor: pointer; }
   display: flex; flex-direction: column; align-items: center;
   font-size: 10px; color: #e8e9efaa; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
-.card-joker-tag { font-size: 11px; background: #f5d97c; color: #4a3a08; border-radius: 6px; padding: 0 5px; font-weight: 700; margin-top: 2px; }
+/* 宝石下方词条区：宝石盒底到费用区之间，单条垂直居中，多条堆叠居中 */
+.card-entries {
+  position: absolute;
+  top: calc(22% + 46px);
+  bottom: 26px;
+  left: 0; right: 0;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.card-joker-tag { font-size: 11px; background: #f5d97c; color: #4a3a08; border-radius: 6px; padding: 0 5px; font-weight: 700; }
 .card-capacity {
-  position: absolute; top: calc(22% + 46px); left: 50%; transform: translateX(-50%);
   font-size: 10px; background: #00000055; border-radius: 6px; padding: 1px 6px;
   white-space: nowrap;
 }
@@ -242,8 +252,8 @@ a { color: var(--accent-2); cursor: pointer; }
 .reserved-label { font-size: 12px; color: var(--text-dim); }
 .reserved-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .reserved-row .card { width: 62px; height: 86px; }
-/* 迷你保留牌卡面精简：隐藏能力标签（悬停有提示），费用点更小 */
-.reserved-row .card .card-capacity { display: none; }
+/* 迷你保留牌卡面精简：隐藏词条区（悬停有提示），费用点更小 */
+.reserved-row .card .card-entries { display: none; }
 .reserved-row .card .cost-dot { width: 11px; height: 11px; font-size: 8px; }
 
 /* ============ 行动栏 ============ */
