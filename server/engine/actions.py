@@ -169,24 +169,11 @@ def validate_take_tokens(state, action) -> None:
         if _direction(cells[0], cells[1]) is None:
             _err("NOT_ALIGNED", "筹码必须相邻且在一条线上")
     elif len(cells) == 3:
-        # 三条在同一直线：按线上顺序检查相邻方向一致
-        a, b, c = cells
+        # 与点击顺序无关：按行主序排序后检查相邻方向一致（排序后中间格必在两端之间）
+        a, b, c = sorted(cells)
         d1, d2 = _direction(a, b), _direction(b, c)
         if d1 is None or d1 != d2:
             _err("NOT_ALIGNED", "筹码必须在一条不间断的直线上")
-        # 中间格必须夹在两端之间
-        if not _between(a, b, c):
-            _err("NOT_ALIGNED", "筹码必须在一条不间断的直线上")
-
-
-def _between(a, b, c) -> bool:
-    """b 是否位于 a 与 c 之间（a, b, c 同行/列/斜线）。"""
-    ra, ca = _cell_rc(a)
-    rb, cb = _cell_rc(b)
-    rc, cc = _cell_rc(c)
-    dr1, dc1 = rb - ra, cb - ca
-    dr2, dc2 = rc - rb, cc - cb
-    return dr1 * dr2 + dc1 * dc2 > 0
 
 
 def validate_reserve(state, action) -> None:

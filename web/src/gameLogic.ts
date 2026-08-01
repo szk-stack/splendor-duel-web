@@ -5,18 +5,22 @@
 import type { CardData, PlayerView, TokenColor } from './types'
 import { GEM_COLORS } from './types'
 
-/** 格位是否在同一条不间断的直线（横/竖/斜）上，且逐格相邻 */
+/**
+ * 格位是否在同一条不间断的直线（横/竖/斜）上，且逐格相邻。
+ * 与点击顺序无关：按索引排序后检查相邻格方向一致即可。
+ */
 export function inLine(cells: number[]): boolean {
   if (cells.length <= 1) return true
+  const sorted = [...cells].sort((a, b) => a - b)
   const dir = (a: number, b: number) => [
     (a % 5) - (b % 5),
     Math.floor(a / 5) - Math.floor(b / 5),
   ]
   const adjacent = (d: number[]) => Math.abs(d[0]) <= 1 && Math.abs(d[1]) <= 1 && !(d[0] === 0 && d[1] === 0)
-  const d = dir(cells[0], cells[1])
+  const d = dir(sorted[0], sorted[1])
   if (!adjacent(d)) return false
-  for (let i = 1; i < cells.length - 1; i++) {
-    const d2 = dir(cells[i], cells[i + 1])
+  for (let i = 1; i < sorted.length - 1; i++) {
+    const d2 = dir(sorted[i], sorted[i + 1])
     if (d[0] !== d2[0] || d[1] !== d2[1] || !adjacent(d2)) return false
   }
   return true

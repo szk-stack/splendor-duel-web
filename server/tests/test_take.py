@@ -68,6 +68,25 @@ def test_take_more_than_3_rejected(game):
         game.step(0, {"kind": "take_tokens", "cells": cells + [cells[0]]})
 
 
+def test_take_unsorted_cells_accepted(game):
+    """乱序提交同一直线的 3 格（10/15/20 竖线）应通过——与点击顺序无关。"""
+    s = game.state
+    s.board[10] = s.board[15] = s.board[20] = "red"
+    # 故意乱序：先两端后中间
+    game.step(0, {"kind": "take_tokens", "cells": [15, 20, 10]})
+    assert s.players[0].tokens["red"] == 3
+    assert s.board[10] is None and s.board[15] is None and s.board[20] is None
+
+
+def test_take_gap_in_line_rejected(game):
+    """隔一格的"伪直线"（0 和 2，中间 1 是空的/未选）仍被拒。"""
+    s = game.state
+    s.board[0] = s.board[1] = s.board[2] = "red"
+    with pytest.raises(InvalidAction) as e:
+        game.step(0, {"kind": "take_tokens", "cells": [0, 2]})
+    assert e.value.code == "NOT_ALIGNED"
+
+
 def test_take_two_pearls_gives_privilege(game):
     # 找两颗珍珠
     s = game.state

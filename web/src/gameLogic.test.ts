@@ -35,6 +35,11 @@ describe('inLine 格位成线判定', () => {
   it('同行相邻但跨行被拒（第 4/5 格边界）', () => {
     expect(inLine([3, 4, 5])).toBe(false)
   })
+  it('乱序点击同一列仍成线（用户场景：15→20→10）', () => {
+    expect(inLine([15, 20, 10])).toBe(true)
+    expect(inLine([4, 12, 8])).toBe(true)  // 斜线乱序
+    expect(inLine([7, 5, 6])).toBe(true)   // 横向乱序
+  })
 })
 
 describe('changeDiscard 弃牌选择增减', () => {
@@ -118,6 +123,12 @@ describe('toggleTakeCell 拿筹码选择', () => {
   })
   it('不成线的新格被拒', () => {
     expect(toggleTakeCell([0, 2], 7)).toEqual([0, 2])
+  })
+  it('乱序点同一列 3 格可成组（用户场景：15→20→10）', () => {
+    let sel = toggleTakeCell([], 15)
+    sel = toggleTakeCell(sel, 20)
+    sel = toggleTakeCell(sel, 10)
+    expect(sel).toEqual([15, 20, 10])
   })
 })
 
