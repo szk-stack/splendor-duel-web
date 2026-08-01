@@ -60,7 +60,12 @@ export function CardView({ card, selected, highlight, dimmed, onClick, showCost 
           /* 双奖励卡直接显示两个宝石图案 */
           <span className="card-gems">
             {Array.from({ length: card.bonus_number }).map((_, i) => (
-              <GemIcon key={i} color={card.bonus} size={24} dark={card.bonus === 'white'} />
+              <GemIcon
+                key={i}
+                color={card.bonus}
+                size={24}
+                dark={card.bonus === 'white' || card.bonus === 'joker'}
+              />
             ))}
           </span>
         )}

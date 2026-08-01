@@ -13,16 +13,22 @@ export function cardTheme(bonus: TokenColor | 'joker' | null): string {
   return `card-theme-${bonus}`
 }
 
-/** 宝石 SVG 图标（六边形切面，纯矢量无版权）。dark: 白卡浅底上用深色描边 */
+/** 宝石 SVG 图标（六边形切面，纯矢量无版权）。dark: 浅底/多彩底上用深色描边 */
 export function GemIcon({ color, size = 14, dark = false }: {
   color: TokenColor | 'joker' | null; size?: number; dark?: boolean
 }) {
-  // 百搭卡用白色（多彩渐变底上对比更强）；灰卡显示空轮廓，不在此处渲染
-  const fill = color === 'joker' ? '#ffffff' : color === null ? '#8a8f98' : `var(--gem-${color})`
+  // 百搭卡用金色渐变（= 游戏里的万能金币）；灰卡显示空轮廓，不在此处渲染
+  const fill = color === 'joker' ? 'url(#joker-gem)' : color === null ? '#8a8f98' : `var(--gem-${color})`
   const stroke = dark ? '#1a1d2a88' : '#ffffff88'
   const sheen = dark ? '#1a1d2a22' : '#ffffff55'
   return (
     <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden>
+      <defs>
+        <linearGradient id="joker-gem" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f8dd8f" />
+          <stop offset="100%" stopColor="#c9962a" />
+        </linearGradient>
+      </defs>
       <polygon points="10,1 18,6 15,18 5,18 2,6" fill={fill} stroke={stroke} strokeWidth="1" />
       <polygon points="10,1 10,9 2,6 18,6 10,9" fill={sheen} />
       <polygon points="10,9 15,18 18,6 10,9" fill="#00000022" />
