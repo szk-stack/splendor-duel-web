@@ -168,20 +168,39 @@ def _in_line(cells) -> bool:
     return True
 
 
-def best_take_cells(candidates, legal_cells) -> list:
-    """从模型候选格中提取最大合法成线组合（3→2→1），全失败返回 None。
+def best_take_cells(candidates, legal_cells, hand_total: int = 0, limit: int = 10) -> list:
+    """拿筹码格位选择：默认拿满 3 个成线格，除非会超手牌上限或棋盘不足。
 
-    保留模型的多格意图：成线就按多格拿，只有完全不合法才降级。
+    策略：
+    1. 先取模型候选中的最大合法成线组合（3→2→1），尊重模型意图；
+    2. 不足 3 个且拿满不超手牌上限时，用棋盘其他合法格补足成 3 格成线
+       （优先包含模型选中格的线，其次任意 3 格线）；
+    3. 手牌 + 3 超上限、或棋盘无 3 格成线 → 按可用数（2/1）拿。
     """
     from itertools import combinations
     cand = [c for c in candidates if isinstance(c, int) and c in legal_cells]
     if not cand:
         return None
+    # 1) 模型意图：最大成线组合
+    best = None
     for n in (3, 2, 1):
         for combo in combinations(sorted(set(cand)), n):
             if _in_line(combo):
+                best = list(combo)
+                break
+        if best:
+            break
+    if best is None:
+        best = [cand[0]]
+    # 2) 补足到 3 个（手牌允许 + 棋盘有 3 格成线）
+    if len(best) < 3 and hand_total + 3 <= limit:
+        for combo in combinations(legal_cells, 3):
+            if _in_line(combo) and all(c in combo for c in best):
                 return list(combo)
-    return None
+        for combo in combinations(legal_cells, 3):
+            if _in_line(combo):
+                return list(combo)
+    return best
 
 
 def normalize_action(action: dict, game, legal_actions: dict) -> dict:
@@ -199,7 +218,10 @@ def normalize_action(action: dict, game, legal_actions: dict) -> dict:
         legal = _find_legal(legal_actions, "take_tokens")
         if not legal:
             return None
-        combo = best_take_cells(action.get("cells") or [], legal["cells"])
+        hand_total = game.state.player(1).total_tokens()
+        combo = best_take_cells(action.get("cells") or [], legal["cells"],
+                                hand_total=hand_total,
+                                limit=game.state._rules["hand_limit"])
         if not combo:
             return None
         return {"kind": "take_tokens", "cells": combo}
@@ -347,7 +369,12 @@ async def take_turn(room, broadcast) -> bool:
                         return True
                     if action is None:
                         log.warning("AI 第 %d 次尝试失败: %s", attempt + 1, error)
-                        continue  # API/解析失败：带原因重试
+                        if error and (error.startswith("解析失败")
+                                      or error.startswith("行动无法规范化")):
+                            # 模型格式/意图问题（如想买但买不起）：
+                            # 直接兜底，避免反复重试浪费 20s/次
+                            break
+                        continue  # API 错误：带原因重试
                     action = normalize_action(action, game, legal)
                     if action is None:
                         error = "行动无法规范化（不在合法范围内）"

@@ -76,10 +76,63 @@ def test_random_legal_none():
     assert random_legal_action({"actions": []}) is None
 
 
+# ---------------------------------------------------------------- 拿筹码补足策略
+
+def test_best_take_cells_fills_to_three(library):
+    """候选只有 1 个格时，补足成 3 格成线（默认拿满）。"""
+    from app.ai_player import best_take_cells
+    g = Game(library, seed=3)
+    legal_cells = [i for i, t in enumerate(g.state.board) if t != "gold"]
+    combo = best_take_cells([legal_cells[0]], legal_cells, hand_total=0)
+    assert len(combo) == 3
+    assert combo[0] == legal_cells[0]  # 保留模型选中格
+
+
+def test_best_take_cells_respects_hand_limit(library):
+    """手牌 9（+3 > 10）时不补足，按候选/可用数拿。"""
+    from app.ai_player import best_take_cells, _in_line
+    g = Game(library, seed=3)
+    legal_cells = [i for i, t in enumerate(g.state.board) if t != "gold"]
+    combo = best_take_cells([legal_cells[0]], legal_cells, hand_total=9, limit=10)
+    assert len(combo) <= 2  # 拿 3 个会超上限
+    assert _in_line(combo)
+
+
+def test_best_take_cells_keeps_model_multi(library):
+    """模型已给出成线 3 格 → 原样保留。"""
+    from app.ai_player import best_take_cells
+    g = Game(library, seed=3)
+    legal_cells = [i for i, t in enumerate(g.state.board) if t != "gold"]
+    legal_set = set(legal_cells)
+    # 找同一行连续 3 格都合法（真成线）
+    found = None
+    for row in range(5):
+        for c in range(3):
+            cells = [row * 5 + c, row * 5 + c + 1, row * 5 + c + 2]
+            if all(x in legal_set for x in cells):
+                found = cells
+                break
+        if found:
+            break
+    if found is None:
+        pytest.skip("固定种子下无连续 3 格")
+    combo = best_take_cells(found, legal_cells, hand_total=0)
+    assert combo == found
+
+
+def test_best_take_cells_sparse_board_two_or_one(library):
+    """棋盘稀疏（无 3 格成线）→ 拿 2 或 1 个。"""
+    from app.ai_player import best_take_cells, _in_line
+    # 只有 2 个合法格
+    combo = best_take_cells([0, 6], [0, 6], hand_total=0)
+    assert len(combo) <= 2
+    assert _in_line(combo)
+
+
 # ---------------------------------------------------------------- 行动规范化
 
 def test_normalize_take_tokens_filters_illegal_cells(library):
-    from app.ai_player import normalize_action
+    from app.ai_player import normalize_action, _in_line
     from app.rooms import PlayerSession, Room
     room = Room(code="X", ai_mode=True)
     room.players[1] = PlayerSession(slot=1, token="AI", nickname="AI", is_ai=True)
@@ -87,13 +140,14 @@ def test_normalize_take_tokens_filters_illegal_cells(library):
     room.game.state.players[1].is_ai = True
     room.game.state.current = 1  # AI 回合
     legal = room.game.legal_actions(1)
-    # 模型输出含金币格/不存在的格 → 过滤为合法单格
+    # 模型输出含金币格/不存在的格 → 过滤为合法格，并补足成 3 格成线
     gold = next(i for i, t in enumerate(room.game.state.board) if t == "gold")
     a = normalize_action({"kind": "take_tokens", "cells": [gold, 999, 5]},
                          room.game, legal)
     assert a["kind"] == "take_tokens"
-    assert len(a["cells"]) == 1
-    assert a["cells"][0] != gold  # 过滤掉了金币格
+    assert 1 <= len(a["cells"]) <= 3
+    assert gold not in a["cells"]  # 过滤掉了金币格
+    assert _in_line(a["cells"])    # 结果必为成线
 
 
 def test_normalize_buy_generates_payment(library):
