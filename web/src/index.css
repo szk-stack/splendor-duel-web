@@ -388,6 +388,30 @@ a { color: var(--accent-2); cursor: pointer; }
   background: #00000044; border-radius: 4px; padding: 0 4px;
 }
 
+/* 回合提醒弹窗 */
+.my-turn-toast {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  animation: toast-fade 0.2s ease;
+}
+@keyframes toast-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.my-turn-toast-box {
+  background: linear-gradient(160deg, #2e3345, #262a38);
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  padding: 28px 44px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+.my-turn-toast-box h3 {
+  font-size: 26px; margin: 0 0 18px; color: var(--accent);
+}
+
 /* 免费卡 */
 .pay-free {
   font-size: 22px; font-weight: 800; color: var(--ok);

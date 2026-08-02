@@ -1,5 +1,5 @@
 /** 游戏棋盘页：纯视图，只渲染服务端状态；选择器本地管理，提交后等服务端回执。 */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGameStore } from '../store'
 import type { Action, BuyOption, CardData, LegalAction } from '../types'
@@ -18,6 +18,8 @@ export function GamePage() {
   const { room, gameState, legalActions, error, banner, sendAction, rematch, leave, reset, connStatus } = useGameStore()
   const [confirmExit, setConfirmExit] = useState(false)
   const [confirmConcede, setConfirmConcede] = useState(false)
+  const [myTurnToast, setMyTurnToast] = useState(false)
+  const prevCurrent = useRef<number | null>(null)
   const [mode, setMode] = useState<Mode>('none')
   const [selCells, setSelCells] = useState<number[]>([])
   const [selCard, setSelCard] = useState<{ opt: BuyOption } | null>(null)
@@ -41,6 +43,27 @@ export function GamePage() {
     setDiscardSel({})
     setBusy(false)
   }, [gameState, error])
+
+  // 轮到自己的回合时弹窗提醒（开局先手、对手行动后、AI 回合后均生效）
+  useEffect(() => {
+    if (!gameState || !me) return
+    const cur = gameState.current
+    if (gameState.phase === 'game_over') {
+      prevCurrent.current = cur
+      return
+    }
+    if (cur === me.slot && prevCurrent.current !== me.slot) {
+      setMyTurnToast(true)
+    }
+    prevCurrent.current = cur
+  }, [gameState, me])
+
+  // 弹窗停留 2 秒自动消失
+  useEffect(() => {
+    if (!myTurnToast) return
+    const t = setTimeout(() => setMyTurnToast(false), 2000)
+    return () => clearTimeout(t)
+  }, [myTurnToast])
 
   const me = gameState?.players.find((p) => p.slot === room?.slot)
   const opp = gameState?.players.find((p) => p.slot !== room?.slot)
@@ -363,6 +386,17 @@ export function GamePage() {
               onConfirm={submitBuy}
               onCancel={() => setSelCard(null)}
             />
+          </div>
+        </div>
+      )}
+
+      {myTurnToast && (
+        <div className="my-turn-toast" onClick={() => setMyTurnToast(false)}>
+          <div className="my-turn-toast-box" onClick={(e) => e.stopPropagation()}>
+            <h3>🎯 轮到你了！</h3>
+            <button className="action-btn action-btn-confirm" onClick={() => setMyTurnToast(false)}>
+              知道了
+            </button>
           </div>
         </div>
       )}
