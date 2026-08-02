@@ -360,6 +360,7 @@ async def take_turn(room, broadcast) -> bool:
                 events = None
                 error = None
                 last_raw = None
+                from_model = False
                 for attempt in range(MAX_RETRY + 1):
                     action, error, last_raw = await ask_action(game.state_dict(1), legal, error)
                     if room.game is not game:
@@ -383,6 +384,7 @@ async def take_turn(room, broadcast) -> bool:
                     try:
                         board_before = list(game.state.board)  # 日志需行动前棋盘
                         events = game.step(1, action)
+                        from_model = True
                         log.info("AI 行动(第%d次尝试): %s",
                                  attempt + 1, json.dumps(action, ensure_ascii=False))
                         break
@@ -406,6 +408,8 @@ async def take_turn(room, broadcast) -> bool:
             except Exception:
                 log.exception("AI 回合异常")
                 return False
+            if not from_model:
+                log.warning("AI 兜底行动: %s", action.get("kind"))
             # 实时日志条目（含卡面与能力效果）
             entry = game_log.build_log_entry(action, board_before, game.state,
                                              game.library, 1, "AI")
