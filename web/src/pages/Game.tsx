@@ -44,6 +44,10 @@ export function GamePage() {
     setBusy(false)
   }, [gameState, error])
 
+  const me = gameState?.players.find((p) => p.slot === room?.slot)
+  const opp = gameState?.players.find((p) => p.slot !== room?.slot)
+  const myTurn = !!gameState && gameState.current === room?.slot
+
   // 轮到自己的回合时弹窗提醒（开局先手、对手行动后、AI 回合后均生效）
   useEffect(() => {
     if (!gameState || !me) return
@@ -64,10 +68,6 @@ export function GamePage() {
     const t = setTimeout(() => setMyTurnToast(false), 2000)
     return () => clearTimeout(t)
   }, [myTurnToast])
-
-  const me = gameState?.players.find((p) => p.slot === room?.slot)
-  const opp = gameState?.players.find((p) => p.slot !== room?.slot)
-  const myTurn = !!gameState && gameState.current === room?.slot
 
   const legal = useMemo(() => legalActions?.actions ?? [], [legalActions])
   const takeLegal = legal.find((a) => a.kind === 'take_tokens') as Extract<LegalAction, { kind: 'take_tokens' }> | undefined
