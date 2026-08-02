@@ -150,6 +150,7 @@ export function GamePage() {
       ...(payload.steal_color ? { steal_color: payload.steal_color } : {}),
       ...(payload.take_cell !== undefined ? { take_cell: payload.take_cell } : {}),
       ...(payload.royal_choice ? { royal_choice: payload.royal_choice } : {}),
+      ...(payload.royal_steal_color ? { royal_steal_color: payload.royal_steal_color } : {}),
     }
     sendAction(action)
     setSelCard(null)

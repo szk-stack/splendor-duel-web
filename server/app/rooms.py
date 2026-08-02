@@ -44,6 +44,7 @@ class Room:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     ai_mode: bool = False                          # 人机模式：slot 1 为 AI
     ai_busy: bool = False                          # AI 回合任务进行中
+    logger: object = None                          # 对局日志（AI 房间）
 
     def touch(self):
         self.last_activity = time.time()
@@ -94,6 +95,9 @@ class RoomManager:
         room = self.rooms.pop(code, None)
         if room is None:
             return
+        if room.logger is not None:
+            room.logger.close()
+            room.logger = None
         for p in room.players.values():
             if p.ws is not None:
                 try:

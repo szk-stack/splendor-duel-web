@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from engine.data import get_library
 from engine.game import Game
 from engine.types import InvalidAction, Phase
-from . import ai_player, config, protocol
+from . import ai_player, config, game_log, protocol
 from .api import router as api_router
 from .rooms import Room, RoomError, RoomManager
 
@@ -88,6 +88,8 @@ async def _start_game(room: Room):
                      nicknames=(nicknames[0], nicknames[1]))
     if room.ai_mode:
         room.game.state.players[1].is_ai = True
+        room.logger = game_log.GameLogger(
+            room.code, nicknames[0], "AI")
     room.status = "playing"
     room.touch()
     await _broadcast_state(room, [], started=True)
@@ -194,6 +196,13 @@ async def _handle_action(room: Room, session, action: dict):
                                  "message": e.message, "ref_action": action})
         return
     await _broadcast_state(room, events)
+    if room.logger is not None and room.game is not None:
+        state = room.game.state_dict(session.slot)
+        room.logger.log_action(session.slot, session.nickname, action, state)
+        if room.game.state.phase == "game_over" and room.game.state.winner is not None:
+            room.logger.log_result(room.game.state.winner, room.game.state.win_reason, state)
+            room.logger.close()
+            room.logger = None
     _maybe_ai_turn(room)  # 真人行动后轮到 AI → 触发 AI 回合
 
 

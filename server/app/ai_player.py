@@ -27,8 +27,10 @@ RULES_SUMMARY = """你是《璀璨宝石：对决》(Splendor Duel) 的 AI 玩�
   4. 保留牌（reserve）是博弈工具，机会合适就要用：①对手已购某颜色卡、正需要该色更多卡时，保留该色的关键牌阻断对手；②棋盘上出现高分卡/高皇冠卡而你还买不起时，先保留锁定（会获得 1 金币）；③你只剩少量金币需求时，保留也是拿金币的途径。
   5. 干扰对手：如果对手明显在凑某个颜色拿同色 10 分，优先拿走/保留该颜色的关键卡，或抢占该颜色筹码。
   6. 胜利推进：中期以后（已购 3+ 张卡）优先购买**高分卡**（3 分以上）与能凑**同色 10 分**的卡，别只买 0-1 分小卡；接近胜利条件时集中所有资源冲刺。
-  7. 三条胜利路线（20分/10皇冠/同色10分）选一条主攻，同时留意皇冠进度（3/6 皇冠可拿皇家牌）。
-  8. 不要无脑囤筹码：手牌超过 10 会被迫弃牌，损失节奏；每回合都问问自己"这步离胜利更近了吗"。"""
+  7. 特权（use_privilege）是关键时刻的加速器：当 legal_actions 出现 use_privilege 且你只差 1-3 个筹码就能购买目标卡时，果断用特权补齐（每回合限一次）；平时筹码充足时不必用。
+  8. 皇家牌（royal_choice）：达到 3/6 皇冠买卡时会触发选择，按局势选——对手筹码厚时优先选偷取牌（偷走对手关键颜色），需要节奏时选额外回合/拿特权，缺分选高分牌。
+  9. 三条胜利路线（20分/10皇冠/同色10分）选一条主攻，同时留意皇冠进度（3/6 皇冠可拿皇家牌）。
+  10. 不要无脑囤筹码：手牌超过 10 会被迫弃牌，损失节奏；每回合都问问自己"这步离胜利更近了吗"。"""
 
 
 _COLOR_LABEL = {"white": "白", "blue": "蓝", "green": "绿",
@@ -272,11 +274,9 @@ def normalize_action(action: dict, game, legal_actions: dict) -> dict:
         if opt.get("royal_required"):
             pool = game.state.royal_pool
             if pool:
-                # 优先选非偷取能力的皇家牌（偷取需额外指定颜色，模型容易漏）
-                royal = next(
-                    (r for r in pool
-                     if game.state._library.royal(r)["capacity"] != "steal_opponent_pawn"),
-                    pool[0])
+                # 尊重模型选择的皇家牌（若未指定则取池首）；偷取能力的牌自动补全偷取颜色
+                wanted = action.get("royal_choice")
+                royal = wanted if wanted in pool else pool[0]
                 result["royal_choice"] = royal
                 if game.state._library.royal(royal)["capacity"] == "steal_opponent_pawn":
                     opp = game.state.opponent(1)
@@ -302,15 +302,15 @@ def normalize_action(action: dict, game, legal_actions: dict) -> dict:
 
 
 async def ask_action(state_dict: dict, legal_actions: dict, error: str = None):
-    """调用大模型获取行动。返回 (action, 错误信息)；解析/调用失败返回 (None, 原因)。"""
+    """调用大模型获取行动。返回 (action, 错误信息, 模型回复原文)；失败时 action 为 None。"""
     try:
         messages = build_messages(state_dict, legal_actions, error)
         text = await ai_client.chat(messages, temperature=0.4, max_tokens=900)
-        return parse_action(text), None
+        return parse_action(text), None, text
     except ai_client.AIError as e:
-        return None, f"API 错误: {e}"
+        return None, f"API 错误: {e}", None
     except (ValueError, json.JSONDecodeError) as e:
-        return None, f"解析失败: {e}"
+        return None, f"解析失败: {e}", None
 
 
 async def take_turn(room, broadcast) -> bool:
@@ -337,8 +337,9 @@ async def take_turn(room, broadcast) -> bool:
                 legal = game.legal_actions(1)
                 events = None
                 error = None
+                last_raw = None
                 for attempt in range(MAX_RETRY + 1):
-                    action, error = await ask_action(game.state_dict(1), legal, error)
+                    action, error, last_raw = await ask_action(game.state_dict(1), legal, error)
                     if action is None:
                         log.warning("AI 第 %d 次尝试失败: %s", attempt + 1, error)
                         continue  # API/解析失败：带原因重试
@@ -371,6 +372,15 @@ async def take_turn(room, broadcast) -> bool:
             except Exception:
                 log.exception("AI 回合异常")
                 return False
+            # 记录 AI 行动与思考原文（对局日志）
+            if room.logger is not None:
+                state = game.state_dict(1)
+                room.logger.log_action(1, "AI", action, state,
+                                       ai_raw=last_raw, is_ai=True)
+                if game.state.phase == "game_over" and game.state.winner is not None:
+                    room.logger.log_result(game.state.winner, game.state.win_reason, state)
+                    room.logger.close()
+                    room.logger = None
             await broadcast(events)
     finally:
         room.ai_busy = False
