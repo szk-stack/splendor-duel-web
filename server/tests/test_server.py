@@ -73,26 +73,28 @@ def test_full_game_flow(client):
     ctx1, ws1 = _open_ws(client, r0["room_code"], r1["token"])
     hello1 = recv_until(ws1, "hello")
     assert hello1["slot"] == 1
-    # 双方收到开局状态
+    # 双方收到开局状态（先后手随机）
     state0 = recv_until(ws0, "state")
     state1 = recv_until(ws1, "state")
     assert state0["started"] and state1["started"]
     assert state0["state"]["phase"] == "optional"
     assert len(state0["state"]["board"]) == 25
-    assert state0["legal_actions"] is not None  # 先手有合法行动
-    assert state1["legal_actions"] is None      # 后手没有
+    starter = state0["state"]["current"]
+    first_ws, second_ws = (ws0, ws1) if starter == 0 else (ws1, ws0)
+    assert (state0["legal_actions"] is not None) == (starter == 0)  # 先手有合法行动
+    assert (state1["legal_actions"] is not None) == (starter == 1)
 
-    # 0 号非法行动 -> 收到 error（还不到对方行动）
-    ws0.send_json({"type": "action", "action": {"kind": "take_tokens", "cells": []}})
-    err = recv_until(ws0, "error")
+    # 先手非法行动 -> 收到 error
+    first_ws.send_json({"type": "action", "action": {"kind": "take_tokens", "cells": []}})
+    err = recv_until(first_ws, "error")
     assert err["code"] in ("ILLEGAL_ACTION",)
 
-    # 0 号拿 1 个筹码 -> 双方收到状态更新
+    # 先手拿 1 个筹码 -> 双方收到状态更新
     cell = next(i for i, t in enumerate(state0["state"]["board"]) if t != "gold")
-    ws0.send_json({"type": "action", "action": {"kind": "take_tokens", "cells": [cell]}})
+    first_ws.send_json({"type": "action", "action": {"kind": "take_tokens", "cells": [cell]}})
     ns0 = recv_until(ws0, "state")
     ns1 = recv_until(ws1, "state")
-    assert ns0["state"]["current"] == 1
+    assert ns0["state"]["current"] == 1 - starter
     assert ns1["state"]["players"][0]["tokens"]["white"] >= 0
 
     # 断线：1 号收到 player_left
@@ -107,7 +109,7 @@ def test_full_game_flow(client):
     recon = recv_until(ws1, "opponent_reconnected")
     assert recon["slot"] == 0
     st = recv_until(ws0b, "state")
-    assert st["state"]["current"] == 1
+    assert st["state"]["current"] == 1 - starter
 
     ctx0b.__exit__(None, None, None)
     ctx1.__exit__(None, None, None)

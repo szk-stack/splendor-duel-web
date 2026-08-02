@@ -23,13 +23,10 @@ class Game:
         state._rules = rules
         state._library = self.library
 
-        # 玩家：slot 0 先手；后手获起始特权
+        # 玩家（先后手与起始特权在 shuffle 完成后统一设置，保证 rng 序列与旧版一致）
         state.privilege_pool = rules["max_privileges"]
         for slot in (0, 1):
             p = PlayerState(slot=slot, nickname=nicknames[slot] or f"玩家{slot + 1}")
-            if slot == 1:
-                p.privileges = rules["second_player_start_privileges"]
-                state.privilege_pool -= p.privileges
             state.players.append(p)
 
         # 筹码：全部洗入棋盘（螺旋顺序，格位即索引）
@@ -56,7 +53,12 @@ class Game:
         state.royal_pool = royal_ids
 
         state.phase = Phase.OPTIONAL
-        state.current = 0
+        # 先后手随机（在全部 shuffle 之后消费 rng，保证牌面序列与旧版一致）；
+        # 后手获起始特权（特权跟随后手，不绑定 slot）
+        state.current = self.rng.choice([0, 1])
+        second = 1 - state.current
+        state.players[second].privileges = rules["second_player_start_privileges"]
+        state.privilege_pool -= state.players[second].privileges
         return state
 
     # ------------------------------------------------------------ 行动入口

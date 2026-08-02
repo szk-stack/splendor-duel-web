@@ -302,3 +302,4 @@ async def _handle_rematch(room: Room):
     room.status = "playing"
     room.touch()
     await _broadcast_state(room, [], started=True)
+    _maybe_ai_turn(room)  # 重开后若轮到 AI → 触发（替换旧任务）

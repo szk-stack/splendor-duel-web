@@ -137,13 +137,17 @@ class FakeChat:
 
 
 def make_ai_room(library, seed=42):
-    """构造 AI 房间：slot 1 是 AI，轮到 AI 行动（0 号已走一步）。"""
+    """构造 AI 房间：slot 1 是 AI，轮到 AI 行动（固定 0 号先手走一步）。"""
     from app.rooms import PlayerSession, Room
     room = Room(code="AITEST", ai_mode=True)
     room.players[0] = PlayerSession(slot=0, token="t0", nickname="真人", ws=object())
     room.players[1] = PlayerSession(slot=1, token="AI", nickname="AI", is_ai=True)
     room.game = Game(library, seed=seed, nicknames=("真人", "AI"))
     room.game.state.players[1].is_ai = True
+    room.game.state.current = 0  # 固定真人先手（测试确定性）
+    room.game.state.players[0].privileges = 0
+    room.game.state.players[1].privileges = 1
+    room.game.state.privilege_pool = 2
     # 真人先走一步，轮到 AI
     cell = next(i for i, t in enumerate(room.game.state.board) if t != "gold")
     room.game.step(0, {"kind": "take_tokens", "cells": [cell]})
@@ -248,6 +252,9 @@ def test_take_turn_discard_fallback(library, monkeypatch):
     room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
     room.game = Game(library, seed=7)
     room.game.state.players[1].is_ai = True
+    room.game.state.current = 0
+    room.game.state.players[1].privileges = 1
+    room.game.state.privilege_pool = 2
     # 真人先手走一步，轮到 AI；给 AI 塞满手牌（>10 触发弃牌）
     cell = next(i for i, t in enumerate(room.game.state.board) if t != "gold")
     room.game.step(0, {"kind": "take_tokens", "cells": [cell]})
@@ -264,15 +271,18 @@ def test_take_turn_discard_fallback(library, monkeypatch):
 
 
 class BlockingChat:
-    """在 API 调用期间执行回调（模拟等待期间对局被替换）。"""
+    """在 API 调用期间执行回调一次（模拟等待期间对局被替换），之后持续报错。"""
 
     def __init__(self, callback):
         self.callback = callback
         self.called = False
+        self.replaced = False
 
     async def __call__(self, messages, **kw):
         self.called = True
-        self.callback()
+        if not self.replaced:
+            self.replaced = True
+            self.callback()
         raise ai_player.ai_client.AIError("被替换")
 
 
@@ -284,6 +294,9 @@ def test_take_turn_stale_game_exits(library, monkeypatch):
     room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
     room.game = Game(library, seed=7)
     room.game.state.players[1].is_ai = True
+    room.game.state.current = 0
+    room.game.state.players[1].privileges = 1
+    room.game.state.privilege_pool = 2
     cell = next(i for i, t in enumerate(room.game.state.board) if t != "gold")
     room.game.step(0, {"kind": "take_tokens", "cells": [cell]})
     old_game = room.game
@@ -298,7 +311,9 @@ def test_take_turn_stale_game_exits(library, monkeypatch):
     events = run(room, expect_game=old_game)
     assert fake.called  # 模型被调用（API 等待期间替换）
     assert events == []  # 旧任务事件被广播层丢弃
-    assert room.game.state.current == 0  # 新对局未被旧任务影响
+    # 旧对局停在 AI 回合（未被旧任务推进）；新对局独立（先手随机）
+    assert old_game.state.current == 1
+    assert room.game.state.current in (0, 1)
 
 
 def test_normalize_buy_royal_steal_color(library):

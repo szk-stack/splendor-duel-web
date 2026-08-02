@@ -11,7 +11,7 @@ def test_initial_state(game):
     assert [len(s.pyramid[t]) for t in (1, 2, 3)] == [5, 4, 3]
     assert all(all(s.pyramid[t]) for t in (1, 2, 3))
     assert [len(s.decks[t]) for t in (1, 2, 3)] == [25, 20, 10]
-    # 特权：后手 1 个，先手 0，池 2
+    # 特权：后手 1 个，先手 0，池 2（fixture 固定 0 号先手）
     assert s.players[0].privileges == 0
     assert s.players[1].privileges == 1
     assert s.privilege_pool == 2
@@ -22,6 +22,22 @@ def test_initial_state(game):
     # 双方手牌为空
     assert all(v == 0 for v in s.players[0].tokens.values())
     assert all(v == 0 for v in s.players[1].tokens.values())
+
+
+def test_random_starter_with_privilege(library):
+    """先后手随机，且起始特权始终跟随后手（不绑定 slot）。"""
+    seen = set()
+    for seed in range(30):
+        s = Game(library, seed=seed).state
+        seen.add(s.current)
+        # 后手 = 非 current 的玩家获得 1 起始特权
+        assert s.players[s.current].privileges == 0
+        assert s.players[1 - s.current].privileges == 1
+        assert s.privilege_pool == 2
+        # 先手在可选阶段
+        assert s.phase == Phase.OPTIONAL
+    # 30 个种子下两种先手都应出现
+    assert seen == {0, 1}
 
 
 def test_same_seed_same_game(library):

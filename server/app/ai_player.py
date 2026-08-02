@@ -340,6 +340,11 @@ async def take_turn(room, broadcast) -> bool:
                 last_raw = None
                 for attempt in range(MAX_RETRY + 1):
                     action, error, last_raw = await ask_action(game.state_dict(1), legal, error)
+                    if room.game is not game:
+                        # API 等待期间对局被替换（重开/退出）→ 放弃旧任务，
+                        # 新对局的 AI 回合由 _start_game/_handle_rematch 重新触发
+                        log.warning("AI 行动期间对局被替换，退出")
+                        return True
                     if action is None:
                         log.warning("AI 第 %d 次尝试失败: %s", attempt + 1, error)
                         continue  # API/解析失败：带原因重试

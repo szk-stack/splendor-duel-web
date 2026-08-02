@@ -82,7 +82,9 @@ def test_ai_room_full_flow(client, monkeypatch):
         # AI 玩家标记
         assert st["state"]["players"][1]["is_ai"] is True
         assert st["state"]["players"][1]["nickname"] == "AI"
-        # 真人先手
+        # 先后手随机：若 AI 先手，等 AI 完成第一回合
+        while st["state"]["current"] == 1 and st["state"]["phase"] != "game_over":
+            st = recv_until(ws, "state")
         assert st["state"]["current"] == 0
 
         # 真人行动（拿 1 个筹码）
@@ -131,6 +133,8 @@ def test_ai_room_rematch_keeps_ai_flag(client, monkeypatch):
         # 真人认输结束对局
         ws.send_json({"type": "action", "action": {"kind": "concede"}})
         st2 = recv_until(ws, "state")
+        while st2["state"]["winner"] is None:
+            st2 = recv_until(ws, "state")  # AI 先手时可能先收到 AI 回合广播
         assert st2["state"]["winner"] == 1
         # 再来一局
         ws.send_json({"type": "rematch"})
