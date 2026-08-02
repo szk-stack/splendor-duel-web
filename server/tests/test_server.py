@@ -214,6 +214,44 @@ def test_last_player_leave_room_survives(client):
     ctx2.__exit__(None, None, None)
 
 
+def test_join_by_nickname_reclaims_disconnected_slot(client):
+    """断线玩家按用户名凭证重新加入：对局进行中可恢复，不同昵称被拒。"""
+    r0 = create_room(client, "Alice")
+    r1 = join_room(client, r0["room_code"], "Bob")
+    ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])
+    recv_until(ws0, "hello")
+    ctx1, ws1 = _open_ws(client, r0["room_code"], r1["token"])
+    recv_until(ws1, "hello")
+    st0 = recv_until(ws0, "state")
+    recv_until(ws1, "state")
+
+    # 房主（Alice）断线（关页面，未走 leave）
+    ctx0.__exit__(None, None, None)
+    recv_until(ws1, "player_left")
+
+    # 不同昵称加入 → 409
+    resp = client.post(f"/api/rooms/{r0['room_code']}/join", json={"nickname": "路人"})
+    assert resp.status_code == 409
+
+    # 同昵称加入 → 接管席位成功
+    resp = client.post(f"/api/rooms/{r0['room_code']}/join", json={"nickname": "Alice"})
+    assert resp.status_code == 200, resp.text
+    data = resp.json()
+    assert data["slot"] == 0
+    assert data["token"] != r0["token"]  # 新 token
+
+    # 接管后连接 → 恢复对局（重连分支，发全量状态）
+    ctx2, ws2 = _open_ws(client, r0["room_code"], data["token"])
+    hello = recv_until(ws2, "hello")
+    assert hello["started"] is True
+    st = recv_until(ws2, "state")
+    # 断线前无人行动过，对局状态原样延续
+    assert st["state"]["current"] == st0["state"]["current"]
+
+    ctx2.__exit__(None, None, None)
+    ctx1.__exit__(None, None, None)
+
+
 def test_ping_pong(client):
     r0 = create_room(client)
     ctx0, ws0 = _open_ws(client, r0["room_code"], r0["token"])

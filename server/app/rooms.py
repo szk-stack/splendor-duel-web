@@ -121,15 +121,33 @@ class RoomManager:
         return code, token, 0
 
     def join(self, code: str, nickname: str) -> tuple:
-        """加入房间，返回 (code, token, slot)。优先分配空闲席位（退出后 slot 0 可能空闲）。"""
+        """加入房间，返回 (code, token, slot)。
+
+        两种加入路径：
+        1. 有可用的空闲席位（退出/离席后）→ 正常分配；
+        2. 房间满员但存在**断线玩家**（disconnected_at 非空）且申请者用户名一致
+           → 按用户名凭证接管该席位（对局进行中可恢复，等同重连）。
+        """
         code = code.strip().upper()
         room = self.rooms.get(code)
         if room is None:
             raise RoomError("ROOM_NOT_FOUND", "房间不存在", 404)
-        if room.status != "waiting" or room.is_full():
-            raise RoomError("ROOM_FULL", "房间已满或对局已开始", 409)
         nickname = sanitize_nickname(nickname)
         token = secrets.token_urlsafe(24)
+
+        # 满员时：用户名匹配断线玩家 → 接管席位（重连凭证）
+        if room.is_full():
+            for slot, p in room.players.items():
+                if p.disconnected_at is not None and p.nickname == nickname:
+                    p.token = token
+                    p.disconnected_at = None
+                    p.ws = None
+                    room.touch()
+                    return code, token, slot
+            raise RoomError("ROOM_FULL", "房间已满或对局已开始", 409)
+
+        if room.status != "waiting":
+            raise RoomError("ROOM_FULL", "房间已满或对局已开始", 409)
         slot = 0 if 0 not in room.players else 1
         room.players[slot] = PlayerSession(slot=slot, token=token, nickname=nickname)
         room.game = None  # 新玩家入座后重开新局
