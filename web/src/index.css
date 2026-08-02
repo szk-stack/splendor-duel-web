@@ -429,4 +429,12 @@ a { color: var(--accent-2); cursor: pointer; }
   .tier-3 .card, .tier-2 .card, .tier-1 .card { width: 62px; height: 88px; }
   .home-title { font-size: 30px; }
   .player-stats { gap: 8px; }
+
+  /* 卡面紧凑布局：宝石上移缩小、词条区加高、标签缩小、费用点单行 */
+  .card-gem { top: 18%; height: 22px; }
+  .card-entries { top: calc(18% + 24px); bottom: 16px; }
+  .card-joker-tag { font-size: 9px; padding: 0 4px; }
+  .card-capacity { font-size: 8px; padding: 0 4px; }
+  .card-cost { gap: 1px; }
+  .cost-dot { width: 9px; height: 9px; font-size: 7px; }
 }
