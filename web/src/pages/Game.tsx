@@ -11,6 +11,7 @@ import { PlayerPanel } from '../components/PlayerPanel'
 import { ActionBar, type Mode } from '../components/ActionBar'
 import { PaymentPanel } from '../components/PaymentPanel'
 import { DiscardPanel } from '../components/DiscardPanel'
+import { GameLog } from '../components/GameLog'
 import { Banner } from '../components/Banner'
 
 export function GamePage() {
@@ -440,6 +441,9 @@ export function GamePage() {
           </div>
         </div>
       )}
+
+      {/* 对局日志（页面最底部） */}
+      <GameLog />
     </div>
   )
 }

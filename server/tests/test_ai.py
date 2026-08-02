@@ -159,7 +159,7 @@ def run(room, expect_game=None):
     """运行 take_turn；expect_game 模拟 main.py 的广播丢弃（对局替换时旧事件作废）。"""
     events = []
 
-    async def broadcast(ev):
+    async def broadcast(ev, le=None):
         if expect_game is not None and room.game is not expect_game:
             return  # 对局已替换，旧任务事件丢弃
         events.append(ev)

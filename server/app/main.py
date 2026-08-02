@@ -46,10 +46,11 @@ def _session_for(room: Room, token: str):
 
 
 async def _broadcast_state(room: Room, events: list, started: bool = False,
-                           expect: object = None):
+                           expect: object = None, log_entry: dict = None):
     """向双方广播个性化 state（保留牌按视角隐藏；legal_actions 只给轮到的玩家）。
 
     expect：调用方持有的 game 引用；对局已被替换时丢弃（防止旧事件混入新房状态）。
+    log_entry：本次行动的结构化日志条目（实时日志面板）。
     """
     if room.game is None:
         return  # 对局已结束/替换（过期 AI 任务可能携带旧事件）
@@ -59,14 +60,17 @@ async def _broadcast_state(room: Room, events: list, started: bool = False,
         p = room.players.get(slot)
         if p and p.ws is not None:
             legal = room.game.legal_actions(slot) if slot == room.game.state.current else None
+            msg = {
+                "type": protocol.S_STATE,
+                "state": room.game.state_dict(slot),
+                "legal_actions": legal,
+                "events": events,
+                "started": started,
+            }
+            if log_entry is not None:
+                msg["log_entry"] = log_entry
             try:
-                await p.ws.send_json({
-                    "type": protocol.S_STATE,
-                    "state": room.game.state_dict(slot),
-                    "legal_actions": legal,
-                    "events": events,
-                    "started": started,
-                })
+                await p.ws.send_json(msg)
             except Exception:
                 pass
 
@@ -190,12 +194,18 @@ async def _handle_action(room: Room, session, action: dict):
                                  "message": "对局已结束"})
         return
     try:
+        board_before = list(room.game.state.board)  # 日志需行动前棋盘取颜色
         events = room.game.step(session.slot, action)
     except InvalidAction as e:
         await _send(session.ws, {"type": protocol.S_ERROR, "code": e.code,
                                  "message": e.message, "ref_action": action})
         return
-    await _broadcast_state(room, events)
+    entry = None
+    if room.game is not None:
+        entry = game_log.build_log_entry(action, board_before, room.game.state,
+                                         room.game.library, session.slot,
+                                         session.nickname)
+    await _broadcast_state(room, events, log_entry=entry)
     if room.logger is not None and room.game is not None:
         state = room.game.state_dict(session.slot)
         room.logger.log_action(session.slot, session.nickname, action, state)
@@ -247,7 +257,9 @@ def _maybe_ai_turn(room: Room):
         return
     if not room.ai_busy:
         task = asyncio.create_task(
-            ai_player.take_turn(room, lambda ev, g=room.game: _broadcast_state(room, ev, expect=g)))
+            ai_player.take_turn(
+                room,
+                lambda ev, le=None, g=room.game: _broadcast_state(room, ev, expect=g, log_entry=le)))
         # 连续失败重调度上限：3 次后放弃并告警（对局无解需人工干预）
         room.ai_retry = getattr(room, "ai_retry", 0)
 

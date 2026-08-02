@@ -2,7 +2,7 @@
 import { create } from 'zustand'
 import { createRoom, joinRoom } from './api'
 import { WsClient } from './ws'
-import type { Action, GameState, LegalActions } from './types'
+import type { Action, GameState, LegalActions, LogEntry } from './types'
 
 export const wsClient = new WsClient()
 
@@ -20,6 +20,7 @@ interface GameStore {
   gameState: GameState | null
   legalActions: LegalActions | null
   lastEvents: unknown[]
+  gameLog: LogEntry[]  // 对局日志（最近 200 条）
   error: string | null
   banner: string | null
   create: (nickname: string, ai?: boolean) => Promise<void>
@@ -33,12 +34,15 @@ interface GameStore {
 }
 
 wsClient.on('state' as never, (msg: any) => {
-  useGameStore.setState({
+  useGameStore.setState((s) => ({
     gameState: msg.state,
     legalActions: msg.legal_actions,
     lastEvents: msg.events,
     error: null,
-  })
+    gameLog: msg.log_entry
+      ? [...s.gameLog, msg.log_entry].slice(-200)
+      : s.gameLog,
+  }))
 })
 wsClient.on('error' as never, (msg: any) => useGameStore.setState({ error: msg.message }))
 wsClient.on('player_left' as never, () => useGameStore.setState({ banner: '对手掉线，等待重连…' }))
@@ -54,6 +58,7 @@ wsClient.on('auth_failed' as never, () => {
     gameState: null,
     legalActions: null,
     lastEvents: [],
+    gameLog: [],
     connStatus: 'closed',
     banner: null,
     error: '房间不存在或已失效，请重新创建/加入房间',
@@ -67,6 +72,7 @@ export const useGameStore = create<GameStore>((set) => ({
   gameState: null,
   legalActions: null,
   lastEvents: [],
+    gameLog: [],
   error: null,
   banner: null,
 
@@ -75,7 +81,8 @@ export const useGameStore = create<GameStore>((set) => ({
     const room = { code: r.room_code, token: r.token, slot: r.slot, ai }
     // 清掉上一局的残留状态，避免新房间误显示旧对局
     set({ room, nickname, connStatus: 'connecting', gameState: null, legalActions: null,
-          lastEvents: [], error: null, banner: null })
+          lastEvents: [],
+    gameLog: [], error: null, banner: null })
     sessionStorage.setItem('splendor_room', JSON.stringify(room))
     sessionStorage.setItem('splendor_nickname', nickname)
     wsClient.connect(room.code, room.token)
@@ -85,7 +92,8 @@ export const useGameStore = create<GameStore>((set) => ({
     const r = await joinRoom(code, nickname)
     const room = { code: r.room_code, token: r.token, slot: r.slot }
     set({ room, nickname, connStatus: 'connecting', gameState: null, legalActions: null,
-          lastEvents: [], error: null, banner: null })
+          lastEvents: [],
+    gameLog: [], error: null, banner: null })
     sessionStorage.setItem('splendor_room', JSON.stringify(room))
     sessionStorage.setItem('splendor_nickname', nickname)
     wsClient.connect(room.code, room.token)
@@ -107,6 +115,7 @@ export const useGameStore = create<GameStore>((set) => ({
       sessionStorage.removeItem('splendor_room')
       sessionStorage.removeItem('splendor_nickname')
       set({ room: null, gameState: null, legalActions: null, lastEvents: [],
+    gameLog: [],
             error: null, banner: null })
     }, 300)
   },

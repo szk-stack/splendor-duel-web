@@ -12,7 +12,12 @@ from app.main import app
 
 @pytest.fixture(scope="module")
 def client():
-    return TestClient(app)
+    c = TestClient(app)
+    yield c
+    # 清理残留房间与后台 AI 任务，避免影响后续测试文件
+    app.state.manager.rooms.clear()
+    import time
+    time.sleep(0.3)
 
 
 def recv_until(ws, mtype, timeout=5):

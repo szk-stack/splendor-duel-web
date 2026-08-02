@@ -89,13 +89,16 @@ def test_full_game_flow(client):
     err = recv_until(first_ws, "error")
     assert err["code"] in ("ILLEGAL_ACTION",)
 
-    # 先手拿 1 个筹码 -> 双方收到状态更新
+    # 先手拿 1 个筹码 -> 双方收到状态更新（含对局日志条目）
     cell = next(i for i, t in enumerate(state0["state"]["board"]) if t != "gold")
     first_ws.send_json({"type": "action", "action": {"kind": "take_tokens", "cells": [cell]}})
     ns0 = recv_until(ws0, "state")
     ns1 = recv_until(ws1, "state")
     assert ns0["state"]["current"] == 1 - starter
     assert ns1["state"]["players"][0]["tokens"]["white"] >= 0
+    assert ns0["log_entry"]["type"] == "take_tokens"
+    assert ns0["log_entry"]["player"]
+    assert ns0["log_entry"]["tokens"]
 
     # 断线：1 号收到 player_left
     ctx0.__exit__(None, None, None)

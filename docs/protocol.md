@@ -21,7 +21,7 @@
 |---|---|---|
 | `hello` | `slot, opponent_nickname, started` | 连接确认 |
 | `player_joined` | `slot, nickname` | 对手入座（大厅用，当前由 hello 携带） |
-| `state` | `state, legal_actions?, events, started` | 全量状态广播；`legal_actions` 只给轮到的玩家；`events` 仅动画用 |
+| `state` | `state, legal_actions?, events, started, log_entry?` | 全量状态广播；`legal_actions` 只给轮到的玩家；`events` 仅动画用；`log_entry` 为本次行动的结构化日志条目（对局日志面板），无行动时为 null |
 | `player_left` | `slot` | 对手掉线 |
 | `opponent_reconnected` | `slot` | 对手重连 |
 | `error` | `code, message, ref_action?` | 行动被拒 |

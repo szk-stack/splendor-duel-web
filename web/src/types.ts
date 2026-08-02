@@ -109,12 +109,27 @@ export interface HelloMsg {
   started: boolean
 }
 
+/** 对局日志条目（服务端 game_log.build_log_entry 生成） */
+export interface LogEntry {
+  player: string
+  type: string
+  turn: number
+  card?: CardData | null
+  royal_card?: RoyalData | null
+  tokens?: Record<string, number>
+  payment?: Record<string, { tokens: number; gold: number }>
+  privileges_used?: number
+  royal_index?: number
+  effects?: string[]
+}
+
 export interface StateMsg {
   type: 'state'
   state: GameState
   legal_actions: LegalActions | null
   events: unknown[]
   started: boolean
+  log_entry?: LogEntry | null
 }
 
 export interface ErrorMsg {

@@ -11,7 +11,7 @@ const sendAction = vi.fn()
 let storeState: Record<string, unknown> = {}
 
 vi.mock('../store', () => ({
-  useGameStore: () => storeState,
+  useGameStore: (selector?: (s: any) => any) => (selector ? selector(storeState) : storeState),
   wsClient: { send: vi.fn() },
   restoreSession: () => {},
 }))
@@ -40,6 +40,7 @@ describe('GamePage 可选行动后恢复可操作', () => {
       gameState: makeGameState(),
       legalActions: makeLegal([{ kind: 'fill_board' }]),
       lastEvents: [],
+      gameLog: [],
       error: null,
       banner: null,
       sendAction,

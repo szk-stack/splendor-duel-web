@@ -8,7 +8,7 @@ import logging
 import random
 
 from engine.types import InvalidAction
-from . import ai_client
+from . import ai_client, game_log
 
 log = logging.getLogger("splendor.ai")
 
@@ -354,6 +354,7 @@ async def take_turn(room, broadcast) -> bool:
                         log.warning("AI 行动无法规范化: %s", error)
                         continue
                     try:
+                        board_before = list(game.state.board)  # 日志需行动前棋盘
                         events = game.step(1, action)
                         log.info("AI 行动(第%d次尝试): %s",
                                  attempt + 1, json.dumps(action, ensure_ascii=False))
@@ -371,13 +372,17 @@ async def take_turn(room, broadcast) -> bool:
                                   game.state.phase)
                         return False
                     try:
+                        board_before = list(game.state.board)
                         events = game.step(1, action)
                     except InvalidAction:
                         return False
             except Exception:
                 log.exception("AI 回合异常")
                 return False
-            # 记录 AI 行动与思考原文（对局日志）
+            # 实时日志条目（含卡面与能力效果）
+            entry = game_log.build_log_entry(action, board_before, game.state,
+                                             game.library, 1, "AI")
+            # 记录 AI 行动与思考原文（对局日志文件）
             if room.logger is not None:
                 state = game.state_dict(1)
                 room.logger.log_action(1, "AI", action, state,
@@ -386,7 +391,7 @@ async def take_turn(room, broadcast) -> bool:
                     room.logger.log_result(game.state.winner, game.state.win_reason, state)
                     room.logger.close()
                     room.logger = None
-            await broadcast(events)
+            await broadcast(events, entry)
     finally:
         room.ai_busy = False
     return True
