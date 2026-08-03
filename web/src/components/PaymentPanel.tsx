@@ -5,6 +5,7 @@ import { GEM_COLORS } from '../types'
 import { CAPACITY_LABEL, TOKEN_LABEL } from '../api'
 import { defaultPayment, effectiveCost, paymentValid } from '../gameLogic'
 import { chipClass } from './gem'
+import { CardView } from './Card'
 
 interface Props {
   card: CardData
@@ -86,7 +87,10 @@ export function PaymentPanel({ card, me, gameState, stackTargets, royalRequired,
 
   return (
     <div className="payment-panel">
-      <h4>购买 {card.id}</h4>
+      <div className="pay-head">
+        <h4>购买</h4>
+        <CardView card={card} />
+      </div>
       {isFree ? (
         <div className="pay-free">🎉 免费！</div>
       ) : (

@@ -46,7 +46,7 @@ export function ActionBar({ mode, legal, busy, selectionReady, onMode, onConfirm
       {!forceFill && (
         <>
           {hasPrivilege && btn(mode === 'privilege', busy, '使用特权', () => onMode(mode === 'privilege' ? 'none' : 'privilege'))}
-          {hasTake && btn(mode === 'take', busy, '拿筹码', () => onMode(mode === 'take' ? 'none' : 'take'))}
+          {hasTake && btn(mode === 'take', busy, '拿宝石', () => onMode(mode === 'take' ? 'none' : 'take'))}
           {hasBuy && btn(mode === 'buy', busy, '购买', () => onMode(mode === 'buy' ? 'none' : 'buy'))}
           {hasReserve && btn(mode === 'reserve', busy, '保留', () => onMode(mode === 'reserve' ? 'none' : 'reserve'))}
           {hasFill && btn(false, busy, '补充棋盘', onFillBoard)}

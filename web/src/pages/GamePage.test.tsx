@@ -66,6 +66,6 @@ describe('GamePage 可选行动后恢复可操作', () => {
     )
 
     // 修复后：busy 复位，行动按钮重新可用
-    expect(screen.getByRole('button', { name: '拿筹码' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '拿宝石' })).toBeEnabled()
   })
 })

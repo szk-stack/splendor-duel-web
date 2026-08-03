@@ -304,7 +304,9 @@ a { color: var(--accent-2); cursor: pointer; }
   border-radius: 16px; padding: 22px 26px; max-width: 460px; width: 92vw;
   max-height: 86vh; overflow: auto;
 }
-.payment-panel h4 { margin: 0 0 14px; }
+.pay-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.pay-head .card { width: 62px; height: 86px; }  /* 与保留区同尺寸 */
+.payment-panel h4 { margin: 0; }
 .pay-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .pay-need { width: 58px; color: var(--text-dim); font-size: 13px; }
 .pay-steppers { display: flex; gap: 16px; }
