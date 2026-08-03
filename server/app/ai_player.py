@@ -18,6 +18,7 @@ RULES_SUMMARY = """你是《璀璨宝石：对决》(Splendor Duel) 的 AI 玩�
 - 目标：率先达成任一胜利条件——声望 20 分 / 收集 10 个皇冠 / 同色卡牌 10 分。
 - 每回合先可执行 0~2 个可选行动（使用特权：放回1-3个特权换对应数量宝石/珍珠；补充棋盘：对手获1特权），然后必须执行 1 个强制行动。
 - 强制行动三选一：①拿取最多3个相邻（横/竖/斜一条线）的宝石/珍珠，不能拿金币；②拿1金币+保留1张牌（唯一获得金币的方式，上限3张）；③购买一张珠宝牌（金币可充当任意宝石/珍珠，已购卡的奖励色可减免对应颜色费用）。
+- 拿筹码的 cells 是棋盘格编号（0-24，行主序：0-4 第一行…），**合法组合已在下文【拿筹码合法组合】中列全，你必须从中选一组完整的 cells**（如横线 [0,1,2]、竖线 [1,6,11]、斜线 [4,8,12]），禁止自己拼数字——自创数字几乎必然不成线。
 - 购买带皇冠的牌可累计皇冠；3/6 皇冠时可拿 1 张皇家牌（每人最多2张）；百搭(joker)奖励卡购买时须叠放到一张已有奖励的卡上并复制其颜色。
 - 回合结束时手牌超过10个必须弃到10个。
 - 博弈策略（必须严格执行，这是对局胜负的关键）：
@@ -30,7 +31,8 @@ RULES_SUMMARY = """你是《璀璨宝石：对决》(Splendor Duel) 的 AI 玩�
   7. 特权（use_privilege）是关键时刻的加速器：当 legal_actions 出现 use_privilege 且你只差 1-3 个筹码就能购买目标卡时，果断用特权补齐（每回合限一次）；平时筹码充足时不必用。
   8. 皇家牌（royal_choice）：达到 3/6 皇冠买卡时会触发选择，按局势选——对手筹码厚时优先选偷取牌（偷走对手关键颜色），需要节奏时选额外回合/拿特权，缺分选高分牌。
   9. 三条胜利路线（20分/10皇冠/同色10分）选一条主攻，同时留意皇冠进度（3/6 皇冠可拿皇家牌）。
-  10. 不要无脑囤筹码：手牌超过 10 会被迫弃牌，损失节奏；每回合都问问自己"这步离胜利更近了吗"。"""
+  10. 不要无脑囤筹码：手牌超过 10 会被迫弃牌，损失节奏；每回合都问问自己"这步离胜利更近了吗"。
+- 输出格式：分析文字可自由写（不限长度）；但全篇只能有一个 JSON 对象（你的行动），且必须位于回复最后，JSON 之后不得再有任何文字。"""
 
 
 _COLOR_LABEL = {"white": "白", "blue": "蓝", "green": "绿",
@@ -50,17 +52,27 @@ def render_board(board: list) -> str:
     return "\n".join(lines)
 
 
+def _render_take_combos(combos: list) -> str:
+    """组合列表 → prompt 文本（[0,1,2]: 红红白 格式）。"""
+    return "\n".join(f"{json.dumps(c['cells'])}: {c['label']}{c['note']}"
+                     for c in combos)
+
+
 def build_messages(state_dict: dict, legal_actions: dict, error: str = None) -> list:
-    """组装提示词：规则 + ASCII 棋盘 + 当前局势 + 合法行动（+ 上次被拒原因）。"""
+    """组装提示词：规则 + ASCII 棋盘 + 拿筹码合法组合 + 当前局势 + 合法行动（+ 上次被拒原因）。"""
     hint = ""
     if legal_actions.get("discard"):
         hint = ("\n\n当前处于【弃牌阶段】：必须输出 {\"kind\": \"discard\", \"colors\": {\"颜色名\": 数量}}，"
                 "各色数量合计必须恰好等于需弃数量，颜色名为 white/blue/green/red/black/pearl/gold。")
+    take_combos = take_take_combos(legal_actions, state_dict["board"])
+    combos_block = ("\n\n【拿筹码合法组合】（从中选一组完整 cells，勿自创）：\n"
+                    + _render_take_combos(take_combos)) if take_combos else ""
     user = (
         "棋盘（索引为 0-24，行主序：0-4 第一行、5-9 第二行…；"
         "拿筹码必须选同一行/列/斜线上连续相邻的格，金=金币不可拿；"
         "拿 3 个同色或 2 个珍珠会让对手获得特权，注意权衡）：\n"
         + render_board(state_dict["board"])
+        + combos_block
         + "\n\n当前局势（JSON，含双方手牌/已购卡/得分/皇冠）：\n"
         + json.dumps(state_dict, ensure_ascii=False)
         + "\n\n你可执行的合法行动（JSON）：\n"
@@ -69,7 +81,8 @@ def build_messages(state_dict: dict, legal_actions: dict, error: str = None) -> 
         + hint
         + "\n\n先简要分析当前局势（对手威胁、你的购买目标、筹码取舍，两三句话即可），"
           "然后只输出行动 JSON 对象（如 {\"kind\": \"take_tokens\", \"cells\": [0, 1, 5]}）。"
-          "分析文字随意，但最后必须包含 JSON。"
+          "分析文字可自由写（不限长度）；但全篇只能有一个 JSON 对象，且必须位于回复最后，"
+          "JSON 之后不得再有任何文字。"
     )
     return [{"role": "system", "content": RULES_SUMMARY},
             {"role": "user", "content": user}]
@@ -149,6 +162,42 @@ def _find_legal(legal_actions: dict, kind: str):
     return None
 
 
+def take_take_combos(legal_actions: dict, board: list, limit: int = 60) -> list:
+    """枚举棋盘上所有合法拿取组合（3 格成线优先，不足补 2 格），供模型直接选择。
+
+    返回 [{"cells": [...], "label": "红红白", "note": "..."}]。
+    模型在数字索引上做几何推理不可靠（常自创"拐角"组合），
+    预计算合法组合让模型只做选择，输出必然成线。
+    """
+    from itertools import combinations
+    take = next((a for a in (legal_actions.get("actions") or [])
+                 if a["kind"] == "take_tokens"), None)
+    if take is None or len(take.get("cells") or []) < 2:
+        return []
+    cells = take["cells"]
+    combos = []
+    for n in (3, 2):
+        if len(cells) < n:
+            continue
+        for combo in combinations(cells, n):
+            if not _in_line(combo):
+                continue
+            colors = [board[c] for c in combo]
+            note = ""
+            if n == 3 and len(set(colors)) == 1:
+                note = " ⚠3同色→对手获特权"
+            elif colors.count("pearl") == 2:
+                note = " ⚠2珍珠→对手获特权"
+            combos.append({"cells": list(combo),
+                           "label": "".join(_COLOR_LABEL[c] for c in colors),
+                           "note": note})
+        if combos:  # 已找到 n 格组合，不再降级
+            break
+    # 3 同色（送对手特权）排最后，模型不易误选
+    combos.sort(key=lambda c: c["note"] != "")
+    return combos[:limit]
+
+
 def _in_line(cells) -> bool:
     """与引擎一致的成线判定：排序后逐格相邻且方向一致。"""
     if len(cells) <= 1:
@@ -203,12 +252,15 @@ def best_take_cells(candidates, legal_cells, hand_total: int = 0, limit: int = 1
     return best
 
 
-def normalize_action(action: dict, game, legal_actions: dict) -> dict:
+def normalize_action(action: dict, game, legal_actions: dict, note: list = None) -> dict:
     """把模型的行动规范化为合法格式（AI 客户端内部修正，引擎仍权威校验）。
 
     - take_tokens/use_privilege：cells 过滤为合法格，取单格保证合法
     - buy：按模型意图匹配卡牌，自动生成支付明细与 joker/steal/royal 选择
     - reserve：补全 gold_cell 与牌位
+
+    note：可选列表，模型意图被丢弃/替换时 append 中文原因
+    （供日志标记"意图降级"，区别于正常规范化调整）。
     """
     if not isinstance(action, dict):
         return None
@@ -241,18 +293,35 @@ def normalize_action(action: dict, game, legal_actions: dict) -> dict:
         legal = _find_legal(legal_actions, "reserve")
         if not legal or not legal.get("gold_cells"):
             return None
-        gold = next((c for c in (action.get("gold_cell") and [action["gold_cell"]] or [])
-                     if c in legal["gold_cells"]), legal["gold_cells"][0])
+        # 兼容两种输出格式：行动格式（gold_cell 单值）或 legal 展示格式（gold_cells 列表）
+        gold = action.get("gold_cell")
+        if not isinstance(gold, int):
+            gold = next((c for c in (action.get("gold_cells") or [])
+                         if c in legal["gold_cells"]), None)
+        if gold is None:
+            gold = legal["gold_cells"][0]
         # 优先模型想保留的明牌，其次牌库顶
         tier = action.get("tier")
         slot = action.get("slot")
+        # 兼容模型模仿 legal_actions 的展示格式（pyramid: {"2": [0]} 或 {"2": 0}）
+        if not isinstance(tier, int):
+            for t, slots in (action.get("pyramid") or {}).items():
+                if isinstance(slots, int):
+                    slots = [slots]
+                if slots and str(t) in legal.get("pyramid", {}):
+                    tier, slot = int(t), slots[0]
+                    break
         if isinstance(tier, int) and str(tier) in legal.get("pyramid", {}) \
                 and slot in legal["pyramid"][str(tier)]:
             return {"kind": "reserve", "source": "pyramid",
                     "tier": tier, "slot": slot, "gold_cell": gold}
         if action.get("source") == "deck" and tier in legal.get("decks", []):
             return {"kind": "reserve", "source": "deck", "tier": tier, "gold_cell": gold}
-        # 默认：随机一张明牌
+        # 默认：随机一张明牌（模型有牌位意图但不可用 → 标记意图降级）
+        has_intent = isinstance(action.get("tier"), int) or action.get("pyramid") \
+            or action.get("source") == "deck"
+        if has_intent and note is not None:
+            note.append("保留意图的牌位不可用（缺失/已空/不合法），已随机选择一张明牌")
         for t, slots in (legal.get("pyramid") or {}).items():
             if slots:
                 return {"kind": "reserve", "source": "pyramid", "tier": int(t),
@@ -271,7 +340,11 @@ def normalize_action(action: dict, game, legal_actions: dict) -> dict:
         wanted = action.get("card_id")
         if not wanted:
             wanted = (action.get("card") or {}).get("id")
-        opt = next((o for o in options if o["card"]["id"] == wanted), None) or options[0]
+        opt = next((o for o in options if o["card"]["id"] == wanted), None)
+        if opt is None:
+            if wanted and note is not None:
+                note.append(f"想买的卡 {wanted} 不在可负担选项中，已替换为第一张可负担卡")
+            opt = options[0]
 
         p = game.state.player(1)
         eff = game.state._library.effective_cost(opt["card"], p.bonus())
@@ -319,7 +392,10 @@ def normalize_action(action: dict, game, legal_actions: dict) -> dict:
                 result["take_cell"] = cell
         return result
 
-    # fill_board / force_fill / 其他：直接透传（引擎会校验）
+    # force_fill 是 legal_actions 的描述标记（棋盘空时唯一出路），实际行动是 fill_board
+    if kind == "force_fill":
+        return {"kind": "fill_board"}
+    # fill_board / 其他：直接透传（引擎会校验）
     return action
 
 
@@ -327,12 +403,14 @@ async def ask_action(state_dict: dict, legal_actions: dict, error: str = None):
     """调用大模型获取行动。返回 (action, 错误信息, 模型回复原文)；失败时 action 为 None。"""
     try:
         messages = build_messages(state_dict, legal_actions, error)
-        text = await ai_client.chat(messages, temperature=0.4, max_tokens=900)
+        # max_tokens 给足余量：分析文字写长时不至于截断掉最后的行动 JSON
+        text = await ai_client.chat(messages, temperature=0.4, max_tokens=1500)
         return parse_action(text), None, text
     except ai_client.AIError as e:
         return None, f"API 错误: {e}", None
     except (ValueError, json.JSONDecodeError) as e:
-        return None, f"解析失败: {e}", None
+        # 保留模型原文（诊断素材：分析"多 JSON/无 JSON"类兜底原因）
+        return None, f"解析失败: {e}", text
 
 
 async def take_turn(room, broadcast) -> bool:
@@ -361,7 +439,10 @@ async def take_turn(room, broadcast) -> bool:
                 error = None
                 last_raw = None
                 from_model = False
+                raw_action = None
+                fallback_reason = None
                 for attempt in range(MAX_RETRY + 1):
+                    norm_note = []  # 每次尝试独立的意图降级标记
                     action, error, last_raw = await ask_action(game.state_dict(1), legal, error)
                     if room.game is not game:
                         # API 等待期间对局被替换（重开/退出）→ 放弃旧任务，
@@ -370,13 +451,15 @@ async def take_turn(room, broadcast) -> bool:
                         return True
                     if action is None:
                         log.warning("AI 第 %d 次尝试失败: %s", attempt + 1, error)
+                        fallback_reason = error
                         if error and (error.startswith("解析失败")
                                       or error.startswith("行动无法规范化")):
                             # 模型格式/意图问题（如想买但买不起）：
                             # 直接兜底，避免反复重试浪费 20s/次
                             break
                         continue  # API 错误：带原因重试
-                    action = normalize_action(action, game, legal)
+                    raw_action = dict(action)
+                    action = normalize_action(action, game, legal, norm_note)
                     if action is None:
                         error = "行动无法规范化（不在合法范围内）"
                         log.warning("AI 行动无法规范化: %s", error)
@@ -410,6 +493,13 @@ async def take_turn(room, broadcast) -> bool:
                 return False
             if not from_model:
                 log.warning("AI 兜底行动: %s", action.get("kind"))
+            # 行动来源：model=模型原样 / normalized=规范化调整 / fallback=随机兜底
+            if not from_model:
+                source = "fallback"
+            elif raw_action is not None and raw_action != action:
+                source = "normalized"
+            else:
+                source = "model"
             # 实时日志条目（含卡面与能力效果）
             entry = game_log.build_log_entry(action, board_before, game.state,
                                              game.library, 1, "AI")
@@ -417,7 +507,11 @@ async def take_turn(room, broadcast) -> bool:
             if room.logger is not None:
                 state = game.state_dict(1)
                 room.logger.log_action(1, "AI", action, state,
-                                       ai_raw=last_raw, is_ai=True)
+                                       ai_raw=last_raw, is_ai=True,
+                                       source=source,
+                                       raw_action=raw_action if source == "normalized" else None,
+                                       reason=fallback_reason if source == "fallback" else None,
+                                       note="；".join(norm_note) if norm_note else None)
                 if game.state.phase == "game_over" and game.state.winner is not None:
                     room.logger.log_result(game.state.winner, game.state.win_reason, state)
                     room.logger.close()

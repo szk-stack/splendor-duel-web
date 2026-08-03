@@ -148,7 +148,8 @@ class Game:
             return result
 
         opts = []
-        if p.privileges > 0 and not state.privilege_used and not state.fill_used:
+        if (p.privileges > 0 and not state.privilege_used and not state.fill_used
+                and non_gold):  # 棋盘无非金格时无格可换，不列出
             opts.append({"kind": "use_privilege", "cells": non_gold})
         if sum(state.bag.values()) > 0 and not state.fill_used:
             opts.append({"kind": "fill_board"})

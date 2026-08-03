@@ -166,3 +166,33 @@ def test_buy_royal_card_effects(library):
             assert any("偷取" in x and "黑" in x for x in royal_effects)
         else:
             assert e["effects"] is None or e["effects"] == []  # 无能力皇家牌
+
+
+# ---------------------------------------------------------------- 文件日志（GameLogger）
+
+def test_log_action_source_markers(tmp_path, monkeypatch):
+    """log_action 文件日志：兜底🔴 / 规范化🟡（含意图降级⚠）/ 模型原样（无标记）。"""
+    from app.game_log import GameLogger
+    monkeypatch.setattr("app.game_log.LOG_DIR", tmp_path)
+    log = GameLogger("TEST")
+    player = {"tokens": {"red": 1}, "points": 0, "bought": [],
+              "crowns": 0, "privileges": 0, "reserved": []}
+    state = {"players": [dict(player), dict(player)]}
+    try:
+        log.log_action(1, "AI", {"kind": "concede"}, state,
+                       source="fallback", reason="重试耗尽")
+        log.log_action(1, "AI", {"kind": "concede"}, state,
+                       source="normalized",
+                       raw_action={"kind": "buy", "card_id": "carte_1"})
+        log.log_action(1, "AI", {"kind": "concede"}, state,
+                       source="normalized",
+                       raw_action={"kind": "reserve", "pyramid": {"2": [0]}},
+                       note="保留意图的牌位不可用，已随机选择一张明牌")
+        log.log_action(1, "AI", {"kind": "concede"}, state)  # 默认 model：无标记
+    finally:
+        log.close()
+    text = log.path.read_text(encoding="utf-8")
+    assert "🔴【兜底】" in text and "重试耗尽" in text
+    assert "🟡【规范化】" in text and "carte_1" in text
+    assert "⚠️【意图降级】" in text and "牌位不可用" in text
+    assert text.count("🔴") == 1 and text.count("🟡") == 2

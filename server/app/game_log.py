@@ -4,6 +4,7 @@
   logs/game_YYYYMMDD_HHMMSS_<房间码>.md
 每局一个文件；AI 的完整模型回复（含分析文字）会被记录，作为学习/调优素材。
 """
+import json
 import time
 from pathlib import Path
 
@@ -203,10 +204,27 @@ class GameLogger:
         self._f.flush()
 
     def log_action(self, slot: int, nickname: str, action: dict, state,
-                   ai_raw: str = None, is_ai: bool = False) -> None:
-        """记录一步行动。state 为行动后的对局状态；ai_raw 为 AI 模型回复原文。"""
+                   ai_raw: str = None, is_ai: bool = False,
+                   source: str = "model", raw_action: dict = None,
+                   reason: str = None, note: str = None) -> None:
+        """记录一步行动。state 为行动后的对局状态；ai_raw 为 AI 模型回复原文。
+
+        source: model=模型原样 / normalized=模型意图被规范化调整 / fallback=随机兜底
+        raw_action: 模型原始输出的行动（规范化调整时记录）
+        reason: 兜底原因（如"重试耗尽"、"模型无 JSON"）
+        note: 意图降级原因（模型想做的事被替换/丢弃，normalized 时附注）
+        """
         p = state["players"][slot]
         line = [f"**{nickname}**：{action_desc(action)}"]
+        # 特殊标记（便于 grep 搜索分析兜底/规范化触发点）
+        if source == "fallback":
+            line.append(f"  > 🔴【兜底】模型未产出可用行动（{reason or '未知原因'}），"
+                        f"已随机执行合法行动")
+        elif source == "normalized":
+            line.append(f"  > 🟡【规范化】模型原始输出已调整："
+                        f"{json.dumps(raw_action, ensure_ascii=False)} → "
+                        f"{json.dumps(action, ensure_ascii=False)}"
+                        + (f"\n  > ⚠️【意图降级】{note}" if note else ""))
         if ai_raw:
             # AI 思考原文（模型学习素材）
             line.append(f"  > AI 思考：{ai_raw.strip().replace(chr(10), ' ')[:400]}")

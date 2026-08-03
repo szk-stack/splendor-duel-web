@@ -76,6 +76,60 @@ def test_random_legal_none():
     assert random_legal_action({"actions": []}) is None
 
 
+# ---------------------------------------------------------------- 拿筹码合法组合列表
+
+def test_take_combos_all_in_line_and_directions():
+    """组合列表：全部成线，覆盖横/竖/斜三种方向。"""
+    from app.ai_player import take_take_combos, _in_line
+    board = ["white"] * 25
+    legal = {"actions": [{"kind": "take_tokens", "cells": list(range(25))}]}
+    combos = take_take_combos(legal, board)
+    assert combos and len(combos) > 10
+    for c in combos:
+        assert len(c["cells"]) == 3 and _in_line(c["cells"])
+    cells_set = {tuple(c["cells"]) for c in combos}
+    assert (0, 1, 2) in cells_set   # 横
+    assert (1, 6, 11) in cells_set  # 竖
+    assert (4, 8, 12) in cells_set  # 斜
+    assert all(c["note"] for c in combos)  # 全白棋盘 → 3 同色全部标注
+
+
+def test_take_combos_mixed_colors_notes():
+    """混合色：普通组合无标注，3 同色/2 珍珠带标注。"""
+    from app.ai_player import take_take_combos
+    board = ["red"] * 25
+    board[4] = "pearl"    # 与 9 相邻 → 2 珍珠组合
+    board[9] = "pearl"
+    board[10] = "blue"
+    legal = {"actions": [{"kind": "take_tokens", "cells": list(range(25))}]}
+    combos = take_take_combos(legal, board)
+    assert any(c["note"] == "" for c in combos)           # [10,11,12] 蓝红红
+    assert any("3同色" in c["note"] for c in combos)      # [0,1,2] 红红红
+    assert any("2珍珠" in c["note"] for c in combos)      # [4,9,14] 珠珠红
+
+
+def test_take_combos_sparse_falls_back_to_two():
+    """棋盘只有 2 个合法格 → 降级为 2 格组合。"""
+    from app.ai_player import take_take_combos, _in_line
+    board = ["red"] * 25
+    legal = {"actions": [{"kind": "take_tokens", "cells": [0, 1]}]}
+    combos = take_take_combos(legal, board)
+    assert combos
+    assert all(len(c["cells"]) == 2 and _in_line(c["cells"]) for c in combos)
+
+
+def test_build_messages_includes_take_combos():
+    """提示词含【拿筹码合法组合】；无 take_tokens 时不出现在 prompt。"""
+    board = ["white"] * 25
+    legal = {"actions": [{"kind": "take_tokens", "cells": [0, 1, 2, 5, 6, 10]}]}
+    body = build_messages({"board": board}, legal)[1]["content"]
+    assert "拿筹码合法组合" in body
+    assert "[0, 1, 2]" in body  # 横线组合已列全
+    body2 = build_messages({"board": board},
+                           {"actions": [{"kind": "fill_board"}]})[1]["content"]
+    assert "拿筹码合法组合" not in body2
+
+
 # ---------------------------------------------------------------- 拿筹码补足策略
 
 def test_best_take_cells_fills_to_three(library):
@@ -148,6 +202,75 @@ def test_normalize_take_tokens_filters_illegal_cells(library):
     assert 1 <= len(a["cells"]) <= 3
     assert gold not in a["cells"]  # 过滤掉了金币格
     assert _in_line(a["cells"])    # 结果必为成线
+
+
+def test_normalize_reserve_legal_format(library):
+    """模型输出 legal_actions 展示格式（pyramid/gold_cells）时，保留其意图的牌位。"""
+    from app.ai_player import normalize_action
+    from app.rooms import PlayerSession, Room
+    room = Room(code="R", ai_mode=True)
+    room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
+    room.game = Game(library, seed=3)
+    room.game.state.players[1].is_ai = True
+    room.game.state.current = 1
+    # 让 2 层 0 位和 1 层 0 位都有牌，且 AI 有金币格可拿
+    room.game.state.pyramid[1][0] = "carte_5"
+    room.game.state.pyramid[2][0] = "carte_34"
+    room.game.state.board[next(i for i, t in enumerate(room.game.state.board)
+                               if t == "gold")] = "gold"
+    legal = room.game.legal_actions(1)
+    # 模型模仿 legal 展示格式：想保留 2 层 0 位，拿第 16 格金币
+    a = normalize_action({"kind": "reserve", "gold_cells": [16],
+                          "pyramid": {"2": [0]}}, room.game, legal)
+    assert a["kind"] == "reserve"
+    assert a["tier"] == 2 and a["slot"] == 0  # 尊重模型意图（carte_34）
+    reserve_legal = next(x for x in legal["actions"] if x["kind"] == "reserve")
+    assert a["gold_cell"] in reserve_legal["gold_cells"]
+    events = room.game.step(1, a)  # 引擎应接受
+    assert any(e["type"] == "card_reserved" for e in events)
+
+
+def test_normalize_reserve_intent_dropped_notes(library):
+    """模型想保留的牌位不可用（层不存在）→ note 标记意图降级。"""
+    from app.ai_player import normalize_action
+    from app.rooms import PlayerSession, Room
+    room = Room(code="R", ai_mode=True)
+    room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
+    room.game = Game(library, seed=3)
+    room.game.state.players[1].is_ai = True
+    room.game.state.current = 1
+    legal = room.game.legal_actions(1)
+    note = []
+    a = normalize_action({"kind": "reserve", "pyramid": {"9": [0]}},
+                         room.game, legal, note)
+    assert a["kind"] == "reserve"
+    assert note and "意图" in note[0] and "随机" in note[0]
+
+
+def test_normalize_buy_wanted_unavailable_notes(library):
+    """模型想买的卡不在可负担选项 → note 标记替换原因。"""
+    from app.ai_player import normalize_action
+    from app.rooms import PlayerSession, Room
+    room = Room(code="R", ai_mode=True)
+    room.players[1] = PlayerSession(slot=1, token="AI1", nickname="AI", is_ai=True)
+    room.game = Game(library, seed=3)
+    room.game.state.players[1].is_ai = True
+    room.game.state.current = 1
+    p = room.game.state.players[1]
+    p.tokens = {c: 6 for c in p.tokens}  # 全部可负担
+    legal = room.game.legal_actions(1)
+    note = []
+    a = normalize_action({"kind": "buy", "card_id": "carte_999"},
+                         room.game, legal, note)
+    assert a["kind"] == "buy"
+    assert note and "carte_999" in note[0] and "替换" in note[0]
+
+
+def test_normalize_force_fill_converted(library):
+    """模型输出描述格式 force_fill → 转换为可执行行动 fill_board。"""
+    from app.ai_player import normalize_action
+    a = normalize_action({"kind": "force_fill"}, None, {})
+    assert a == {"kind": "fill_board"}
 
 
 def test_normalize_buy_generates_payment(library):
